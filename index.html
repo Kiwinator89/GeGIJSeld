@@ -201,7 +201,7 @@ function startHold(i){
   } else {
    updateHoldUI(i);
   }
- }, 300); // 300ms * 10 = 3000ms = 3 sec
+ }, 200); // 300ms * 10 = 3000ms = 3 sec
 }
 
 function endHold(i){
@@ -240,11 +240,11 @@ function draw(){
 
   // Linker Deur UI
   $('dl-status').textContent = S.d[0] ? 'GESLOTEN' : 'OPEN';$('dl-status').className = 'door-status' + (S.d[0] ? ' closed' : '');
-  $('dl-power').textContent = 'Verbruik: ' + (S.d[0] ? '0.5\%/s' : '0.0\%/s');$('dl-btn-txt').textContent = S.d[0] ? 'KLIK OM TE OPENEN' : 'HOUD 3S OM TE SLUITEN';
+  $('dl-power').textContent = 'Verbruik: ' + (S.d[0] ? '0.5\%/s' : '0.0\%/s');$('dl-btn-txt').textContent = S.d[0] ? 'OPEN' : 'SLUIT';
 
   // Rechter Deur UI
   $('dr-status').textContent = S.d[1] ? 'GESLOTEN' : 'OPEN';$('dr-status').className = 'door-status' + (S.d[1] ? ' closed' : '');
-  $('dr-power').textContent = 'Verbruik: ' + (S.d[1] ? '0.5\%/s' : '0.0\%/s');$('dr-btn-txt').textContent = S.d[1] ? 'KLIK OM TE OPENEN' : 'HOUD 3S OM TE SLUITEN';
+  $('dr-power').textContent = 'Verbruik: ' + (S.d[1] ? '0.5\%/s' : '0.0\%/s');$('dr-btn-txt').textContent = S.d[1] ? 'OPEN' : 'SLUIT';
 
   const totalDoorPower = (S.d[0] * 0.5 + S.d[1] * 0.5).toFixed(1);
   $('total-door-power').textContent = `Totaal Deur Stroomverbruik: ${totalDoorPower}%/s (0.5%/s per gesloten deur)`;
