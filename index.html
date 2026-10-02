@@ -12,18 +12,17 @@ h1{font-size:min(12vw,90px);margin:0;color:#e22;text-shadow:0 0 20px #f00,3px 3p
 button{font-family:inherit;background:#200;color:#f55;border:2px solid #a22;padding:10px 20px;cursor:pointer;font-size:18px;transition:.2s}
 button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 #hud{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:3;font-size:20px;text-shadow:0 0 8px #f00}
-/* Slaapkamer (placeholders, later te vervangen door PNG's) */
-#room{position:absolute;inset:60px 0 90px;display:flex;justify-content:space-between;align-items:stretch;border:3px solid #2a1630;
+/* Slaapkamer (bedekt het hele scherm) */
+#room{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:stretch;
  background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
-.door{width:22%;margin:0 4%;position:relative;border:6px solid #3b2415;border-bottom:none;background:linear-gradient(#0c0610,#030006);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:10px;align-self:flex-end;height:82%}
+.door{width:22%;margin:0 4% 60px;position:relative;border:6px solid #3b2415;border-bottom:none;background:linear-gradient(#0c0610,#030006);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:10px;align-self:flex-end;height:75%}
 .door .lbl{position:absolute;top:8px;color:#a4a}
 .door.closed{background:repeating-linear-gradient(90deg,#6b4423 0 14px,#4a2f17 14px 28px);box-shadow:inset 0 0 40px #000}
 .door.closed .lbl{color:#fff}
 .door .e{position:absolute;bottom:20px;width:80%;opacity:0;transition:.3s;filter:drop-shadow(0 0 12px #f00)}
 .door.here .e{opacity:1}
-#bed{flex:1;margin:0 2% 6%;align-self:flex-end;height:28%;border:2px dashed #7a5a8a;background:rgba(120,80,150,.25);display:flex;align-items:center;justify-content:center;color:#a8a;letter-spacing:6px}
 /* Camera's */
-#cam{position:absolute;inset:60px 0 90px;z-index:2;background:#071007;display:none;flex-direction:column;align-items:center;justify-content:center;border:3px solid #2a2;filter:contrast(1.3) saturate(.6)}
+#cam{position:absolute;inset:0;z-index:2;background:#071007;display:none;flex-direction:column;align-items:center;justify-content:center;border:3px solid #2a2;filter:contrast(1.3) saturate(.6);padding:50px 0 70px}
 #cam.on{display:flex}
 #cv{font-size:24px;color:#4f4;text-shadow:0 0 8px #0f0;margin-bottom:10px}
 #cs{width:70%;height:60%;border:2px solid #292;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden}
@@ -37,13 +36,13 @@ button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 #bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
 .e{display:block}
 </style></head><body><div id="g">
+<audio id="amb" src="Audio/Ambience.mp3" loop preload="auto"></audio>
 <div class="sc" id="menu"><h1>geGIJSeld</h1><p style="color:#a4a">Je zit gevangen in een nachtmerrie.<br>Overleef tot 6 uur 's ochtends in je slaapkamer tegen Meester Gijs.</p>
 <p style="color:#888;font-size:14px">Sluit deuren (A / D of knoppen) · Camera's (SPATIE) · Let op je stroom!</p><button onclick="start()">START NACHT</button></div>
 <div class="sc" id="end" style="display:none"><h1 id="et"></h1><p id="ep"></p><button onclick="start()">OPNIEUW</button></div>
 <div id="hud"><span id="tm">12 AM</span><span id="pw">Stroom: 100%</span></div>
 <div id="room">
 <div class="door" id="dl"><span class="lbl">LINKER DEUR</span><img class="e" id="el"></div>
-<div id="bed">BED</div>
 <div class="door" id="dr"><span class="lbl">RECHTER DEUR</span><img class="e" id="er"></div></div>
 <div id="cam"><div id="cv"></div><div id="cs"><div id="cd"></div><img class="e" id="ec"></div><div id="cb"></div></div>
 <div id="bar"><button onclick="door(0)">Deur L [A]</button><button onclick="tcam()">Camera [SPATIE]</button><button onclick="door(1)">Deur R [D]</button></div>
@@ -52,7 +51,6 @@ button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 const SRC='Images/GijsF1.png';
 function $(id){return document.getElementById(id)}
 ['el','er','ec'].forEach(i=>$(i).src=SRC);
-// 8 camera's (placeholders, later PNG per camera). Gijs start bij CAM 8 en loopt naar CAM 1, daarna naar een deur.
 const CAMS=[
  {n:'CAM 1 · Hal',bg:'linear-gradient(#1a2a1a 0 70%,#2a2418 70%)'},
  {n:'CAM 2 · Trap',bg:'linear-gradient(#2a1a1a 0 70%,#241c18 70%)'},
@@ -63,21 +61,30 @@ const CAMS=[
  {n:'CAM 7 · Zolder',bg:'linear-gradient(#222 0 70%,#1a1612 70%)'},
  {n:'CAM 8 · Kelder',bg:'linear-gradient(#151a22 0 70%,#101010 70%)'}];
 let S;
-function start(){S={p:100,d:[0,0],h:0,cam:false,ci:0,pos:7,at:0,over:false,tick:0};
+function playAmbience(){
+ const a=$('amb');if(!a)return;
+ a.currentTime=0;
+ a.play().catch(()=>{
+  if(a.src.includes('Audio/Ambience.mp3')){a.src='Ambience.mp3';a.play().catch(()=>{});}
+ });
+}
+function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
+function start(){
+ stopAmbience();
+ playAmbience();
+ S={p:100,d:[0,0],h:0,cam:false,ci:0,pos:7,at:0,over:false,tick:0};
  $('menu').style.display=$('end').style.display='none';$('js').style.display='none';
  ['dl','dr'].forEach(i=>$(i).className='door');$('cam').classList.remove('on');draw();
  S.iv=setInterval(loop,1000)}
 function door(i){if(S.over)return;S.d[i]^=1;$(i?'dr':'dl').classList.toggle('closed',!!S.d[i])}
 function tcam(){if(S.over)return;S.cam=!S.cam;$('cam').classList.toggle('on',S.cam);draw()}
 function pickCam(i){S.ci=i;draw()}
-// pos: 0..7 = camera-index, 'L'/'R' = bij deur
 function draw(){
  $('tm').textContent=(S.h==0?12:S.h)+' AM';$('pw').textContent='Stroom: '+Math.max(0,Math.ceil(S.p))+'%';
  $('dl').classList.toggle('here',S.pos=='L');$('dr').classList.toggle('here',S.pos=='R');
  const c=CAMS[S.ci];$('cv').textContent='REC '+c.n;
  $('cs').style.background=c.bg;$('cd').textContent='PLAATSHOUDER '+c.n;
- $('ec').style.display=(S.pos===S.ci)?'block':'none';
- $('cb').innerHTML=CAMS.map((c,i)=>`<button class="${i==S.ci?'a':''}" onclick="pickCam(${i})">${i+1}</button>`).join('')}
+ $('ec').style.display=(S.pos===S.ci)?'block':'none';$('cb').innerHTML=CAMS.map((c,i)=>`<button class="${i==S.ci?'a':''}" onclick="pickCam(${i})">${i+1}</button>`).join('')}
 function loop(){if(S.over)return;
  S.tick++;S.p-=0.35+S.d[0]*0.45+S.d[1]*0.45+(S.cam?0.35:0);
  if(S.tick%45==0)S.h++;
@@ -85,16 +92,16 @@ function loop(){if(S.over)return;
  if(S.p<=0){S.p=0;S.d=[0,0];['dl','dr'].forEach(i=>$(i).classList.remove('closed'));
   if(atDoor&&++S.at>=3)return die()}
  if(S.h>=6)return win();
- const diff=.10+S.h*.03; // trager dan eerst
+ const diff=.10+S.h*.03;
  if(!atDoor){ if(Math.random()<diff){S.pos--; if(S.pos<0)S.pos=Math.random()<.5?'L':'R'} }
  else if(S.d[di]){ if(++S.at>=3){S.pos=5;S.at=0} }
  else if(++S.at>=4) return die();
  draw()}
-function die(){S.over=true;clearInterval(S.iv);const j=$('js'),v=$('jv');j.style.display='flex';
+function die(){S.over=true;stopAmbience();clearInterval(S.iv);const j=$('js'),v=$('jv');j.style.display='flex';
  const done=()=>{if(j.style.display=='none')return;j.style.display='none';fin('JE BENT GEGIJSELD','Meester Gijs heeft je te pakken...')};
  v.onended=done;v.onerror=()=>setTimeout(done,1500);v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
  setTimeout(done,15000)}
-function win(){S.over=true;clearInterval(S.iv);fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...')}
+function win(){S.over=true;stopAmbience();clearInterval(S.iv);fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...')}
 function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.display='flex'}
 addEventListener('keydown',e=>{if(!S||S.over)return;const k=e.key.toLowerCase();if(k=='a')door(0);if(k=='d')door(1);if(k==' '){e.preventDefault();tcam()}})
 </script></body></html>
