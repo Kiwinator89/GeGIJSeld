@@ -15,44 +15,67 @@ h1{font-size:min(12vw,90px);margin:0;color:#e22;text-shadow:0 0 20px #f00,3px 3p
 button{font-family:inherit;background:#200;color:#f55;border:2px solid #a22;padding:10px 20px;cursor:pointer;font-size:18px;transition:.2s}
 button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 #hud{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:3;font-size:20px;text-shadow:0 0 8px #f00}
+#room{position:absolute;inset:0;background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
 
-/* Slaapkamer (Hoofdscherm zonder deuren) */
-#room{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;
- background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
-
-/* Camera & Deursysteem Monitor */
-#cam{position:absolute;inset:0;z-index:2;background:#071007;display:none;flex-direction:column;align-items:center;justify-content:center;border:3px solid #2a2;filter:contrast(1.3) saturate(.6);padding:20px 0 60px}
+/* Camera monitor — full screen, immersief */
+#cam{position:absolute;inset:0;z-index:2;background:#040804;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start}
 #cam.on{display:flex}
-#cv{font-size:24px;color:#4f4;text-shadow:0 0 8px #0f0;margin-bottom:10px}
-#cs{width:75%;height:65%;border:2px solid #292;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background-size:cover;background-position:center}
-#cd{position:absolute;top:10px;left:10px;color:#4f4;opacity:.7;letter-spacing:2px;background:rgba(0,0,0,0.6);padding:4px 8px;border:1px solid #2a2}
-#cs .e{max-height:85%;max-width:45%;position:relative;filter:drop-shadow(0 0 14px #f00)}
 
-/* Deursysteem UI Panel */
-#door-panel{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-around;background:#031003;padding:20px}
-.door-card-container{display:flex;gap:20px;width:100%;justify-content:center}
-.door-card{width:45%;border:2px solid #2a2;background:#021802;padding:15px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 0 10px rgba(0,255,0,0.2)}
-.door-status{font-size:20px;font-weight:bold;color:#4f4}
-.door-status.closed{color:#f55;text-shadow:0 0 8px #f00}
-.door-power{font-size:14px;color:#8c8}
-.hold-btn{position:relative;width:100%;padding:15px 10px;background:#052205;border:2px solid #2a2;color:#4f4;font-size:16px;cursor:pointer;overflow:hidden;user-select:none;touch-action:none}
-.hold-btn .progress{position:absolute;top:0;left:0;bottom:0;width:0%;background:#2a2;opacity:0.5;transition:width 0.1s linear}
-.hold-btn span{position:relative;z-index:1}
+/* Camera feed — groot, bijna full screen */
+#cs{position:relative;flex:1;overflow:hidden;background-size:cover;background-position:center bottom;border-bottom:2px solid #1a1}
+/* CRT overlay op feed */
+#cs::after{content:"";position:absolute;inset:0;pointer-events:none;
+ background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.7) 100%);
+ z-index:2}
+/* HUD bovenop feed */
+#cv{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:18px;color:#4f4;text-shadow:0 0 8px #0f0;z-index:3;background:rgba(0,0,0,.55);padding:3px 14px;border:1px solid #2a2;letter-spacing:2px}
+#cd{position:absolute;top:12px;left:14px;color:#4f4;opacity:.7;letter-spacing:2px;background:rgba(0,0,0,0.6);padding:4px 8px;border:1px solid #2a2;z-index:3;font-size:13px}
+#crec{position:absolute;top:14px;right:14px;color:#f44;z-index:3;font-size:13px;animation:blink 1s step-start infinite}
+@keyframes blink{50%{opacity:0}}
 
-#cb{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;justify-content:center}
-#cb button{border-color:#2a2;color:#4f4;background:#021;padding:8px 14px}
-#cb button.a{background:#2a2;color:#000;font-weight:bold}
-#cb button.door-tab-btn{border-color:#a22;color:#f88}
-#cb button.door-tab-btn.a{background:#a22;color:#fff}
+/* Gijs onderaan camera, groot */
+#ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;filter:drop-shadow(0 0 20px #f00) drop-shadow(0 -4px 30px #800);z-index:1;display:none}
+
+/* Countdown timer voor deur (bij gang) */
+#door-warn{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(180,0,0,.85);border:2px solid #f00;color:#fff;padding:6px 22px;font-size:22px;letter-spacing:2px;display:none;text-shadow:0 0 10px #f00;animation:pulse .5s infinite alternate}
+@keyframes pulse{from{box-shadow:0 0 10px #f00}to{box-shadow:0 0 30px #f44}}
+
+/* Onderste balk: cam-naam + snelheidsknop + camera-switcher-indicator */
+#cambar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:#020d02;border-top:2px solid #1a1;gap:10px;flex-shrink:0;min-height:56px}
+#cam-dots{display:flex;gap:6px;align-items:center}
+.cam-dot{width:10px;height:10px;border-radius:50%;background:#1a3a1a;border:1px solid #2a2;transition:.2s}
+.cam-dot.cur{background:#4f4;box-shadow:0 0 8px #0f0}
+.cam-dot.gijs{background:#f44;box-shadow:0 0 8px #f00;animation:pulse .4s infinite alternate}
+#spdbtn{font-family:inherit;background:#021;border:2px solid #2a2;color:#4f4;padding:6px 14px;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap}
+#spdbtn.fast{background:#220;border-color:#a22;color:#f88;box-shadow:0 0 10px #f004}
+#spdbtn:hover{background:#2a2;color:#000}
+#spdbtn.fast:hover{background:#a22;color:#fff}
+
+/* Deur-overlay: compact paneel rechtsboven in camera */
+#door-overlay{position:absolute;top:12px;right:14px;z-index:10;display:flex;flex-direction:column;gap:6px;display:none}
+#cam.on #door-overlay{display:flex}
+.dov-btn{font-family:inherit;background:rgba(2,20,2,.9);border:2px solid #2a2;color:#4f4;padding:7px 12px;font-size:13px;cursor:pointer;transition:.2s;text-align:left;min-width:130px}
+.dov-btn.closed{border-color:#a22;color:#f88;background:rgba(30,2,2,.9)}
+.dov-btn:hover{background:#0f1f0f;box-shadow:0 0 8px #0f0}
+.dov-btn.closed:hover{background:#1f0505;box-shadow:0 0 8px #f00}
+.dov-label{font-size:10px;color:#484;letter-spacing:1px}
+
+/* Camera open knop */
+#bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
 
 #js{position:fixed;inset:0;z-index:20;background:#000;display:none;align-items:center;justify-content:center}
 #js video{width:100vw;height:100vh;object-fit:cover}
-#bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
 </style>
 </head>
 <body>
 <div id="g">
 <audio id="amb" src="Audio/Ambience.mp3" loop preload="auto"></audio>
+<audio id="snd-switch" src="Audio/CameraSwitch.mp3" preload="auto"></audio>
+<audio id="snd-alarm" src="Audio/Alarm.mp3" preload="auto"></audio>
+<audio id="snd-dclose" src="Audio/DoorClose.mp3" preload="auto"></audio>
+<audio id="snd-dopen" src="Audio/DoorOpen.mp3" preload="auto"></audio>
+<audio id="snd-steps" src="Audio/Footsteps.mp3" preload="auto"></audio>
+<audio id="snd-laugh" src="Audio/Laugh.mp3" preload="auto"></audio>
 
 <div class="sc" id="menu">
  <h1>geGIJSeld</h1>
@@ -75,41 +98,35 @@ button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 <div id="room"></div>
 
 <div id="cam">
- <div id="cv">REC CAM 1 · Woonkamer</div>
+ <!-- Camera feed -->
  <div id="cs">
-  <div id="cd">CAM 1 · Woonkamer</div>
-  <img class="e" id="ec" src="Images/GijsF1.png" style="display:none">
-  
-  <div id="door-panel" style="display:none">
-   <h2 style="color:#4f4;margin:0 0 10px 0;">DEURSYSTEEM BEHEER</h2>
-   <div class="door-card-container">
-    <div class="door-card">
-     <div style="font-size:18px;color:#fff;">LINKER DEUR</div>
-     <div class="door-status" id="dl-status">OPEN</div>
-     <div class="door-power" id="dl-power">Verbruik: 0.0%/s</div>
-     <button class="hold-btn" id="dl-btn" onmousedown="startHold(0)" onmouseup="endHold(0)" onmouseleave="endHold(0)" ontouchstart="startHold(0)" ontouchend="endHold(0)">
-      <div class="progress" id="dl-prog"></div>
-      <span id="dl-btn-txt">Houd ingedrukt om te sluiten.</span>
-     </button>
-    </div>
-    <div class="door-card">
-     <div style="font-size:18px;color:#fff;">RECHTER DEUR</div>
-     <div class="door-status" id="dr-status">OPEN</div>
-     <div class="door-power" id="dr-power">Verbruik: 0.0%/s</div>
-     <button class="hold-btn" id="dr-btn" onmousedown="startHold(1)" onmouseup="endHold(1)" onmouseleave="endHold(1)" ontouchstart="startHold(1)" ontouchend="endHold(1)">
-      <div class="progress" id="dr-prog"></div>
-      <span id="dr-btn-txt"Houd ingedrukt om te sluiten.</span>
-     </button>
-    </div>
-   </div>
-   <div style="color:#8c8;font-size:15px;margin-top:10px;" id="total-door-power"></div>
-  </div>
+  <div id="cv">REC CAM 1 · Woonkamer</div>
+  <div id="cd">CAM 1</div>
+  <div id="crec">● REC</div>
+  <img id="ec" src="Images/GijsF1.png">
+  <div id="door-warn">⚠ SLUIT DEUR NU!</div>
  </div>
- <div id="cb"></div>
+
+ <!-- Deur-overlay rechtsboven -->
+ <div id="door-overlay">
+  <div class="dov-label">DEURSYSTEEM</div>
+  <button class="dov-btn" id="dl-btn" onclick="toggleDoor(0)">
+   ◀ LINKS: <span id="dl-st">OPEN</span>
+  </button>
+  <button class="dov-btn" id="dr-btn" onclick="toggleDoor(1)">
+   RECHTS: <span id="dr-st">OPEN</span> ▶
+  </button>
+ </div>
+
+ <!-- Onderste balk -->
+ <div id="cambar">
+  <div id="cam-dots"></div>
+  <button id="spdbtn" onclick="toggleSpeed()">⏩ VERSNELLEN</button>
+ </div>
 </div>
 
 <div id="bar">
- <button onclick="tcam()">      ↑↑↑      </button>
+ <button onclick="tcam()">📷 CAMERA [SPATIE]</button>
 </div>
 
 <div id="js">
@@ -120,245 +137,223 @@ button:hover{background:#a22;color:#fff;box-shadow:0 0 15px #f00}
 <script>
 function $(id){return document.getElementById(id)}
 
-const CAMS = [
- { n: '1: Woonkamer', bg: 'Camera/Cam1Background.png' },
- { n: '2: Eetkamer', bg: 'Camera/Cam2Background.png' },
- { n: '3: Kantoor', bg: 'Camera/Cam3Background.png' },
- { n: '4: Linkergang', bg: 'Camera/Cam4Background.png' },
- { n: '5: Rechtergang', bg: 'Camera/Cam5Background.png' }
+const CAMS=[
+ {n:'1: Woonkamer',bg:'Camera/Cam1Background.png'},
+ {n:'2: Eetkamer',bg:'Camera/Cam2Background.png'},
+ {n:'3: Kantoor',bg:'Camera/Cam3Background.png'},
+ {n:'4: Linkergang',bg:'Camera/Cam4Background.png'},
+ {n:'5: Rechtergang',bg:'Camera/Cam5Background.png'}
 ];
 
-let S = {};
-let holdTimer = [null, null];
-let holdProgress = [0, 0];
-let holdInterval = [null, null];
+// Camera auto-switch interval (normaal: 4s, snel: 1.5s)
+const SW_NORMAL=4000, SW_FAST=1500;
+
+let S={};
+let camSwitchTimer=null;
+
+function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 
 function playAmbience(){
  const a=$('amb');if(!a)return;
  a.currentTime=0;
- a.play().catch(()=>{
-  if(a.src.includes('Audio/Ambience.mp3')){a.src='Ambience.mp3';a.play().catch(()=>{});}
- });
+ a.play().catch(()=>{if(a.src.includes('Audio/'))a.src=a.src.split('/').pop(),a.play().catch(()=>{});});
 }
-
 function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
 
+function getGijsDelay(){return Math.floor(Math.random()*10)+16;} // 16-25s
+
 function start(){
- stopAmbience();
- playAmbience();
- S = {
-  p: 100,
-  d: [0, 0], // Deuren: 0 = open, 1 = dicht
-  h: 0,
-  cam: false,
-  tab: 0, // 0..4 = Camera's, 5 = Deursysteem
-  gijsPos: 0, // 0 = Cam 1, 1 = Cam 2, 2 = Cam 3, 3 = Cam 4, 4 = Cam 5
-  gijsTimer: getGijsDelay(),
-  over: false,
-  tick: 0
+ stopAmbience();playAmbience();
+ if(camSwitchTimer)clearInterval(camSwitchTimer);
+ S={
+  p:100,d:[0,0],h:0,
+  cam:false,
+  activeCam:0,       // welke camera nu zichtbaar
+  fast:false,        // versnelde camera-switch
+  gijsPos:0,         // 0-4 = cam index
+  gijsTimer:getGijsDelay(),
+  gijsAtDoor:false,  // staat hij bij gang?
+  doorCountdown:0,   // seconden over om deur te sluiten
+  over:false,tick:0
  };
- $('menu').style.display =$('end').style.display = 'none';
- $('js').style.display = 'none';$('cam').classList.remove('on');
- resetHold(0); resetHold(1);
+ $('menu').style.display=$('end').style.display='none';
+ $('js').style.display='none';
+ $('cam').classList.remove('on');
+ $('door-warn').style.display='none';
+ startCamCycle();
  draw();
- if(S.iv) clearInterval(S.iv);
- S.iv = setInterval(loop, 1000);
+ if(S.iv)clearInterval(S.iv);
+ S.iv=setInterval(loop,1000);
 }
 
-function getGijsDelay(){
- return Math.floor(Math.random() * 11) + 8; // Random tussen 8 en 18 seconden
+/* ---- Camera auto-switch ---- */
+function startCamCycle(){
+ if(camSwitchTimer)clearInterval(camSwitchTimer);
+ const interval=S.fast?SW_FAST:SW_NORMAL;
+ camSwitchTimer=setInterval(()=>{
+  if(S.over||!S.cam)return;
+  S.activeCam=(S.activeCam+1)%CAMS.length;
+  snd('snd-switch');
+  draw();
+ },interval);
+}
+
+function toggleSpeed(){
+ if(S.over)return;
+ S.fast=!S.fast;
+ snd('snd-alarm');
+ startCamCycle();
+ draw();
 }
 
 function tcam(){
- if(S.over) return;
- S.cam = !S.cam;
- $('cam').classList.toggle('on', S.cam);
+ if(S.over)return;
+ S.cam=!S.cam;
+ $('cam').classList.toggle('on',S.cam);
+ if(S.cam)startCamCycle();
+ else{if(camSwitchTimer)clearInterval(camSwitchTimer);}
  draw();
 }
 
-function selectTab(i){
- S.tab = i;
+/* ---- Deuren (instant) ---- */
+function toggleDoor(i){
+ if(S.over)return;
+ S.d[i]=S.d[i]?0:1;
+ snd(S.d[i]?'snd-dclose':'snd-dopen');
+ // Als Gijs bij die gang staat en deur nu gesloten: stop countdown
+ if(S.d[i]===1&&((i===0&&S.gijsPos===3)||(i===1&&S.gijsPos===4))){
+  S.gijsAtDoor=false;S.doorCountdown=0;
+  $('door-warn').style.display='none';
+  // Gijs keert terug na 4-9s (handled in loop)
+ }
  draw();
 }
 
-/* Door Control Hold Logic (3 seconden vasthouden) */
-function startHold(i){
- if(S.over) return;
- if(S.d[i] === 1){
-  // Als deur al dicht is, direct openen bij klik
-  S.d[i] = 0;
-  draw();
-  return;
- }
- resetHold(i);
- holdInterval[i] = setInterval(()=>{
-  holdProgress[i] += 10;
-  if(holdProgress[i] >= 100){
-   holdProgress[i] = 100;
-   S.d[i] = 1;
-   resetHold(i);
-   draw();
-  } else {
-   updateHoldUI(i);
-  }
- }, 200); // 300ms * 10 = 3000ms = 3 sec
-}
-
-function endHold(i){
- if(S.d[i] === 0){
-  resetHold(i);
- }
-}
-
-function resetHold(i){
- if(holdInterval[i]) clearInterval(holdInterval[i]);
- holdInterval[i] = null;
- holdProgress[i] = 0;
- updateHoldUI(i);
-}
-
-function updateHoldUI(i){
- const pBar = $(i === 0 ? 'dl-prog' : 'dr-prog');
- if(pBar) pBar.style.width = holdProgress[i] + '%';
-}
-
+/* ---- Draw ---- */
 function draw(){
- $('tm').textContent = (S.h === 0 ? 12 : S.h) + ' AM';$('pw').textContent = 'Stroom: ' + Math.max(0, Math.ceil(S.p)) + '%';
+ $('tm').textContent=(S.h===0?12:S.h)+' AM';
+ $('pw').textContent='Stroom: '+Math.max(0,Math.ceil(S.p))+'%';
 
- // Update Camera Buttons
- let buttonsHtml = CAMS.map((c, i) => 
-  `<button class="${S.tab === i ? 'a' : ''}" onclick="selectTab(${i})">CAM ${i+1}</button>`
- ).join('');
- buttonsHtml += `<button class="door-tab-btn ${S.tab === 5 ? 'a' : ''}" onclick="selectTab(5)">[ DEUR SYSTEEM ]</button>`;
- $('cb').innerHTML = buttonsHtml;
+ // Speed button
+ const sb=$('spdbtn');
+ sb.textContent=S.fast?'🐢 VERTRAGEN':'⏩ VERSNELLEN';
+ sb.className=S.fast?'fast':'';
 
- if(S.tab === 5){
-  // Deursysteem weergave
-  $('door-panel').style.display = 'flex';
-  $('ec').style.display = 'none';$('cd').style.display = 'none';
-  $('cs').style.backgroundImage = 'none';$('cv').textContent = 'SYSTEEM: DEUR BEDIENING';
+ // Camera feed
+ const cam=CAMS[S.activeCam];
+ $('cv').textContent='REC CAM '+cam.n;
+ $('cd').textContent='CAM '+(S.activeCam+1);
+ $('cs').style.backgroundImage=`url('${cam.bg}')`;
+ $('ec').style.display=(S.gijsPos===S.activeCam)?'block':'none';
 
-  // Linker Deur UI
-  $('dl-status').textContent = S.d[0] ? 'GESLOTEN' : 'OPEN';$('dl-status').className = 'door-status' + (S.d[0] ? ' closed' : '');
-  $('dl-power').textContent = 'Verbruik: ' + (S.d[0] ? '0.5\%/s' : '0.0\%/s');$('dl-btn-txt').textContent = S.d[0] ? 'OPEN' : 'SLUIT';
-
-  // Rechter Deur UI
-  $('dr-status').textContent = S.d[1] ? 'GESLOTEN' : 'OPEN';$('dr-status').className = 'door-status' + (S.d[1] ? ' closed' : '');
-  $('dr-power').textContent = 'Verbruik: ' + (S.d[1] ? '0.5\%/s' : '0.0\%/s');$('dr-btn-txt').textContent = S.d[1] ? 'OPEN' : 'SLUIT';
-
-  const totalDoorPower = (S.d[0] * 0.5 + S.d[1] * 0.5).toFixed(1);
-  $('total-door-power').textContent = `Totaal Deur Stroomverbruik: ${totalDoorPower}%/s (0.5%/s per gesloten deur)`;
- } else {
-  // Camera feed weergave
-  $('door-panel').style.display = 'none';$('cd').style.display = 'block';
-  
-  const currentCam = CAMS[S.tab];
-  $('cv').textContent = 'REC CAM ' + currentCam.n;
-  $('cd').textContent = 'CAM ' + currentCam.n;
-  $('cs').style.backgroundImage = `url('${currentCam.bg}')`;
-
-  // Laat Gijs zien op de actieve camera
-  $('ec').style.display = (S.gijsPos === S.tab) ? 'block' : 'none';
+ // Dots
+ let dots='';
+ for(let i=0;i<CAMS.length;i++){
+  const gijs=S.gijsPos===i;
+  const cur=S.activeCam===i;
+  dots+=`<div class="cam-dot${cur?' cur':''}${gijs?' gijs':''}" title="CAM ${i+1}"></div>`;
  }
+ $('cam-dots').innerHTML=dots;
+
+ // Deuren overlay
+ const dl=$('dl-btn'),dr=$('dr-btn');
+ dl.className='dov-btn'+(S.d[0]?' closed':'');
+ dr.className='dov-btn'+(S.d[1]?' closed':'');
+ $('dl-st').textContent=S.d[0]?'DICHT':'OPEN';
+ $('dr-st').textContent=S.d[1]?'DICHT':'OPEN';
 }
 
+/* ---- Game loop ---- */
 function loop(){
- if(S.over) return;
+ if(S.over)return;
  S.tick++;
 
- // Stroomverbruik berekening
- const basePower = 0.1;
- const camPower = S.cam ? 0.2 : 0;
- const doorPower = (S.d[0] * 0.5) + (S.d[1] * 0.5);
- S.p -= (basePower + camPower + doorPower);
+ const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
+ S.p-=(basePower+camPower+doorPower);
 
- if(S.p <= 0){
-  S.p = 0;
-  S.d = [0, 0]; // Deuren vallen open bij stroomuitval
-  S.cam = false;
+ if(S.p<=0){
+  S.p=0;S.d=[0,0];S.cam=false;
   $('cam').classList.remove('on');
-  die();
-  return;
+  return die();
  }
 
- // Tijdstip voortgang (elke 45 sec is 1 uur)
- if(S.tick % 45 === 0) S.h++;
- if(S.h >= 6) return win();
+ if(S.tick%45===0)S.h++;
+ if(S.h>=6)return win();
 
- // Gijs Verplaatsings Logica (Elke 8 tot 18 seconden)
+ // Gijs AI
  S.gijsTimer--;
- if(S.gijsTimer <= 0){
-  S.gijsTimer = getGijsDelay();
 
-  if(S.gijsPos === 0){
-   S.gijsPos = 1; // Cam 1 -> Cam 2
-  } else if(S.gijsPos === 1){
-   S.gijsPos = 2; // Cam 2 -> Cam 3
-  } else if(S.gijsPos === 2){
-   // 50/50 kans naar Cam 4 (Linkergang) of Cam 5 (Rechtergang)
-   S.gijsPos = Math.random() < 0.5 ? 3 : 4;
-  } else if(S.gijsPos === 3){
-   // Gijs staat op Cam 4 (Linkergang) en wil aanvallen/verdwijnen
-   if(S.d[0] === 1){
-    // Linker deur is gesloten: Gijs wordt tegengehouden en reset naar Cam 1
-    S.gijsPos = 0;
-   } else {
-    // Linker deur is open: Jumpscare!
-    return die();
-   }
-  } else if(S.gijsPos === 4){
-   // Gijs staat op Cam 5 (Rechtergang) en wil aanvallen/verdwijnen
-   if(S.d[1] === 1){
-    // Rechter deur is gesloten: Gijs wordt tegengehouden en reset naar Cam 1
-    S.gijsPos = 0;
-   } else {
-    // Rechter deur is open: Jumpscare!
-    return die();
-   }
+ // Deur-countdown als hij bij gang staat
+ if(S.gijsAtDoor){
+  S.doorCountdown--;
+  if(S.doorCountdown<=3&&S.doorCountdown>0){
+   $('door-warn').style.display='block';
+   $('door-warn').textContent=`⚠ SLUIT DEUR! ${S.doorCountdown}s`;
   }
+  if(S.doorCountdown<=0){
+   // Tijd voorbij: jumpscare als deur nog open
+   const doorIdx=S.gijsPos===3?0:1;
+   if(S.d[doorIdx]===0)return die();
+   // Deur was gesloten (al afgehandeld in toggleDoor), reset
+   S.gijsAtDoor=false;$('door-warn').style.display='none';
+  }
+ }
+
+ if(S.gijsTimer<=0){
+  S.gijsTimer=getGijsDelay();
+  moveGijs();
  }
 
  draw();
 }
 
+function moveGijs(){
+ if(S.gijsPos===0)S.gijsPos=1;
+ else if(S.gijsPos===1)S.gijsPos=2;
+ else if(S.gijsPos===2)S.gijsPos=Math.random()<.5?3:4;
+ else if(S.gijsPos===3||S.gijsPos===4){
+  const doorIdx=S.gijsPos===3?0:1;
+  if(S.d[doorIdx]===1){
+   // Deur was al gesloten toen hij aankwam: blokkeer, terug na 4-9s
+   snd('snd-steps');
+   const delay=(Math.floor(Math.random()*6)+4)*1000;
+   S.gijsAtDoor=false;$('door-warn').style.display='none';
+   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
+  } else {
+   // Deur open: 12 seconden om te sluiten
+   S.gijsAtDoor=true;
+   S.doorCountdown=12;
+   $('door-warn').style.display='block';
+   $('door-warn').textContent='⚠ SLUIT DEUR! 12s';
+   // Na 12s check in loop
+  }
+ }
+}
+
+/* ---- Einde ---- */
 function die(){
- S.over = true;
- stopAmbience();
- clearInterval(S.iv);
- const j = $('js'), v =$('jv');
- j.style.display = 'flex';
- const done = () => {
-  if(j.style.display === 'none') return;
-  j.style.display = 'none';
-  fin('JE BENT GEGIJSELD', 'Meester Gijs heeft je te pakken...');
- };
- v.onended = done;
- v.onerror = () => setTimeout(done, 1500);
- v.currentTime = 0;
- v.play().catch(() => setTimeout(done, 1500));
- setTimeout(done, 15000);
+ S.over=true;stopAmbience();
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);
+ $('door-warn').style.display='none';
+ const j=$('js'),v=$('jv');
+ j.style.display='flex';
+ const done=()=>{if(j.style.display==='none')return;j.style.display='none';fin('JE BENT GEGIJSELD','Meester Gijs heeft je te pakken...');};
+ v.onended=done;v.onerror=()=>setTimeout(done,1500);
+ v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+ setTimeout(done,15000);
 }
 
 function win(){
- S.over = true;
- stopAmbience();
- clearInterval(S.iv);
- fin('6 AM — OVERLEEFD', 'Je wordt wakker. Of toch niet...');
+ S.over=true;stopAmbience();
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);
+ fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
 }
 
-function fin(a, b){
- $('et').textContent = a;
- $('ep').textContent = b;
- $('end').style.display = 'flex';
-}
+function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.display='flex';}
 
-addEventListener('keydown', e => {
- if(!S || S.over) return;
- const k = e.key.toLowerCase();
- if(k === ' '){
-  e.preventDefault();
-  tcam();
- }
+addEventListener('keydown',e=>{
+ if(!S||S.over)return;
+ if(e.key===' '){e.preventDefault();tcam();}
 });
 </script>
 </body>
