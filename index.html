@@ -15,6 +15,7 @@ h1{font-size:min(12vw,90px);margin:0;color:#e22;text-shadow:0 0 20px #f00,3px 3p
 button{font-family:inherit;background:#111;color:#ddd;border:2px solid #555;padding:10px 20px;cursor:pointer;font-size:18px;transition:.2s}
 button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #hud{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:3;font-size:20px;color:#fff;text-shadow:0 0 8px #fff5}
+#tm{position:absolute;top:10px;left:20px;z-index:3;font-size:20px;color:#fff;text-shadow:0 0 8px #fff5}
 #room{position:absolute;inset:0;background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
 
 /* Camera monitor */
@@ -60,9 +61,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 /* Knoppen onderaan kamer */
 #bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
 
-/* Storingen knop */
-#storingen-btn{font-family:inherit;background:#1a0a00;border:2px solid #f80;color:#f80;padding:10px 20px;font-size:16px;cursor:pointer;display:none;animation:blink 1s step-start infinite;letter-spacing:2px}
-#storingen-btn.visible{display:inline-block}
+
 
 /* Deur-UI (apart scherm) */
 #door-ui{position:absolute;inset:0;z-index:10;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
@@ -96,6 +95,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-steps" src="Audio/Footsteps.mp3" preload="auto"></audio>
 <audio id="snd-laugh" src="Audio/Laugh.mp3" preload="auto"></audio>
 <audio id="snd-repair" src="Audio/Repair.mp3" preload="auto"></audio>
+<audio id="snd-camopen" src="Audio/CameraOpen.mp3" preload="auto"></audio>
 
 <div class="sc" id="menu">
  <h1>geGIJSeld</h1>
@@ -110,10 +110,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  <button onclick="start()">OPNIEUW</button>
 </div>
 
-<div id="hud">
- <span id="tm">12 AM</span>
- <span id="pw">Stroom: 100%</span>
-</div>
+<span id="tm">12 AM</span>
 
 <div id="room"></div>
 
@@ -162,7 +159,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <div id="bar">
  <button onclick="tcam()">BEVEILIGINGSSYSTEEM [SPATIE]</button>
- <button id="storingen-btn" onclick="openStoringen()">⚠ STORINGEN</button>
+
  <button onclick="toggleDoorUI()">DEURSYSTEEM</button>
 </div>
 
@@ -212,7 +209,7 @@ function start(){
   attackCountdown:0,
   over:false,tick:0,
   // Storing
-  hasFault:false,faultNotified:false
+  hasFault:false,faultNotified:false,showSecret:false
  };
  $('menu').style.display=$('end').style.display='none';
  $('js').style.display='none';
@@ -220,7 +217,6 @@ function start(){
  $('door-ui').classList.remove('on');
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
- $('storingen-btn').classList.remove('visible');
  draw();
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
@@ -251,11 +247,13 @@ function startCamCycle(){
   S.activeCam=(S.activeCam+1)%CAMS.length;
   camSwitchStart=performance.now();
   snd('snd-switch');
-  // 5% kans op storing bij switch
-  if(!S.hasFault&&Math.random()<0.05){
+  // 5% kans op storing ALLEEN bij versneld
+  if(S.fast&&!S.hasFault&&Math.random()<0.05){
    S.hasFault=true;
    S.faultNotified=true;
   }
+  // 0.1% kans CameraSecret.png
+  S.showSecret=(Math.random()<0.001);
   draw();
  },interval);
  startProgressBar();
@@ -273,7 +271,7 @@ function tcam(){
  if(S.over||S.door)return;
  S.cam=!S.cam;
  $('cam').classList.toggle('on',S.cam);
- if(S.cam){startCamCycle();}
+ if(S.cam){snd('snd-camopen');startCamCycle();}
  else{if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);$('cam-progress').style.width='0%';}
  draw();
 }
@@ -282,17 +280,9 @@ function toggleDoorUI(){
  if(S.over)return;
  if(!S.door&&S.cam){tcam();}
  S.door=!S.door;
+ if(S.door)snd('snd-camopen');
  $('door-ui').classList.toggle('on',S.door);
  draw();
-}
-
-/* ---- Storingen ---- */
-function openStoringen(){
- if(S.over||!S.hasFault)return;
- // Open camera-scherm als nog niet open
- if(!S.cam){tcam();}
- $('static-overlay').classList.add('on');
- $('repair-btn').classList.add('visible');
 }
 
 /* ---- Reparatie ---- */
@@ -312,7 +302,6 @@ function startRepair(e){
    S.hasFault=false;S.faultNotified=false;
    $('static-overlay').classList.remove('on');
    $('repair-btn').classList.remove('visible');
-   $('storingen-btn').classList.remove('visible');
    draw();
   }
  },100);
@@ -346,8 +335,8 @@ function toggleDoor(i){
 /* ---- Draw ---- */
 function draw(){
  $('tm').textContent=(S.h===0?12:S.h)+' AM';
+ $('tm').style.display=(S.cam||S.door)?'none':'block';
  const p=Math.max(0,Math.ceil(S.p));
- $('pw').textContent='Stroom: '+p+'%';
  $('door-pw-val').textContent=p;
  $('pwr-bar').style.width=p+'%';
 
@@ -359,7 +348,7 @@ function draw(){
  $('cv').textContent='REC CAM '+cam.n;
  $('cd').textContent='CAM '+(S.activeCam+1);
  $('cam-name').textContent=cam.n;
- $('cs').style.backgroundImage=`url('${cam.bg}')`;
+ $('cs').style.backgroundImage=S.showSecret?`url('Camera/CameraSecret.png')`:`url('${cam.bg}')`;
 
  // Gijs zichtbaar op camera:
  // - Normaal: op cam als gijsPos===activeCam EN niet in 'leaving'/'gone'/'atdoor' fase
@@ -373,11 +362,9 @@ function draw(){
  if(S.hasFault){
   so.classList.add('on');
   $('repair-btn').classList.add('visible');
-  $('storingen-btn').classList.add('visible');
  } else {
   so.classList.remove('on');
   $('repair-btn').classList.remove('visible');
-  if(!S.hasFault)$('storingen-btn').classList.remove('visible');
  }
 
  // Deuren
