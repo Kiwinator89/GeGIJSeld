@@ -31,6 +31,18 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #crec{position:absolute;top:14px;right:14px;color:#f44;z-index:3;font-size:13px;animation:blink 1s step-start infinite}
 @keyframes blink{50%{opacity:0}}
 
+/* Storing overlay */
+#static-overlay{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,rgba(0,0,0,.9) 1px 4px),rgba(5,5,5,.97)}
+#static-overlay.on{display:flex}
+#static-text{color:#f80;font-size:22px;letter-spacing:4px;text-shadow:0 0 12px #f80;animation:blink 1s step-start infinite}
+#static-sub{color:#555;font-size:13px;letter-spacing:2px;margin-top:8px}
+
+/* Repareer knop */
+#repair-btn{display:none;font-family:inherit;background:#1a0a00;border:2px solid #f80;color:#f80;padding:14px 28px;font-size:16px;cursor:pointer;letter-spacing:2px;margin-top:20px;transition:.2s;position:relative;overflow:hidden}
+#repair-btn.visible{display:block}
+#repair-btn:hover{background:#2a1500}
+#repair-progress{position:absolute;bottom:0;left:0;height:3px;background:#f80;width:0%;transition:none;box-shadow:0 0 8px #f80}
+
 /* Gijs onderaan camera */
 #ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;filter:drop-shadow(0 0 20px #f00) drop-shadow(0 -4px 30px #800);z-index:1;display:none}
 
@@ -40,13 +52,17 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 /* Onderste balk */
 #cambar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:#080808;border-top:2px solid #333;gap:10px;flex-shrink:0;min-height:56px}
-#spdbtn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:6px 14px;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap}
+#spdbtn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:6px 14px;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap;min-width:130px;text-align:center}
 #spdbtn.fast{background:#1a0000;border-color:#822;color:#f88;box-shadow:0 0 10px #f004}
 #spdbtn:hover{background:#333;color:#fff}
 #spdbtn.fast:hover{background:#500;color:#fff}
 
 /* Knoppen onderaan kamer */
 #bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
+
+/* Storingen knop */
+#storingen-btn{font-family:inherit;background:#1a0a00;border:2px solid #f80;color:#f80;padding:10px 20px;font-size:16px;cursor:pointer;display:none;animation:blink 1s step-start infinite;letter-spacing:2px}
+#storingen-btn.visible{display:inline-block}
 
 /* Deur-UI (apart scherm) */
 #door-ui{position:absolute;inset:0;z-index:10;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
@@ -79,6 +95,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-dopen" src="Audio/DoorOpen.mp3" preload="auto"></audio>
 <audio id="snd-steps" src="Audio/Footsteps.mp3" preload="auto"></audio>
 <audio id="snd-laugh" src="Audio/Laugh.mp3" preload="auto"></audio>
+<audio id="snd-repair" src="Audio/Repair.mp3" preload="auto"></audio>
 
 <div class="sc" id="menu">
  <h1>geGIJSeld</h1>
@@ -107,6 +124,15 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <div id="cd">CAM 1</div>
   <div id="crec">● REC</div>
   <img id="ec" src="Images/GijsF1.png">
+  <!-- Storing overlay -->
+  <div id="static-overlay">
+   <div id="static-text">⚠ GEEN SIGNAAL</div>
+   <div id="static-sub">VIDEOSTORING GEDETECTEERD</div>
+   <button id="repair-btn" onmousedown="startRepair()" onmouseup="stopRepair()" onmouseleave="stopRepair()" ontouchstart="startRepair(event)" ontouchend="stopRepair()">
+    REPAREER VIDEOBEELDEN
+    <div id="repair-progress"></div>
+   </button>
+  </div>
   <!-- Voortgangsbalk -->
   <div id="cam-progress-wrap"><div id="cam-progress"></div></div>
  </div>
@@ -136,6 +162,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <div id="bar">
  <button onclick="tcam()">BEVEILIGINGSSYSTEEM [SPATIE]</button>
+ <button id="storingen-btn" onclick="openStoringen()">⚠ STORINGEN</button>
  <button onclick="toggleDoorUI()">DEURSYSTEEM</button>
 </div>
 
@@ -155,11 +182,14 @@ const CAMS=[
  {n:'5: Rechtergang',bg:'Camera/Cam5Background.png'}
 ];
 
-const SW_NORMAL=4000, SW_FAST=1500;
+// +30% trager: 4000->5200, 1500->1950
+const SW_NORMAL=5200, SW_FAST=1950;
 let S={};
 let camSwitchTimer=null;
 let camSwitchStart=0;
 let progressRaf=null;
+let repairInterval=null;
+let repairProgress=0;
 
 function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 function playAmbience(){const a=$('amb');if(!a)return;a.currentTime=0;a.play().catch(()=>{});}
@@ -170,18 +200,27 @@ function start(){
  stopAmbience();playAmbience();
  if(camSwitchTimer)clearInterval(camSwitchTimer);
  cancelAnimationFrame(progressRaf);
+ stopRepair();
  S={
   p:100,d:[0,0],h:0,
   cam:false,door:false,
   activeCam:0,fast:false,
   gijsPos:0,gijsTimer:getGijsDelay(),
-  gijsAtDoor:false,doorCountdown:0,
-  over:false,tick:0
+  // Aanval: 'idle'|'leaving'|'gone'|'atdoor'
+  attackPhase:'idle',
+  attackDoor:-1,    // 0=links, 1=rechts
+  attackCountdown:0,
+  over:false,tick:0,
+  // Storing
+  hasFault:false,faultNotified:false
  };
  $('menu').style.display=$('end').style.display='none';
  $('js').style.display='none';
  $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
+ $('static-overlay').classList.remove('on');
+ $('repair-btn').classList.remove('visible');
+ $('storingen-btn').classList.remove('visible');
  draw();
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
@@ -212,6 +251,11 @@ function startCamCycle(){
   S.activeCam=(S.activeCam+1)%CAMS.length;
   camSwitchStart=performance.now();
   snd('snd-switch');
+  // 5% kans op storing bij switch
+  if(!S.hasFault&&Math.random()<0.05){
+   S.hasFault=true;
+   S.faultNotified=true;
+  }
   draw();
  },interval);
  startProgressBar();
@@ -236,11 +280,49 @@ function tcam(){
 
 function toggleDoorUI(){
  if(S.over)return;
- // Sluit camera als deur-ui opent
  if(!S.door&&S.cam){tcam();}
  S.door=!S.door;
  $('door-ui').classList.toggle('on',S.door);
  draw();
+}
+
+/* ---- Storingen ---- */
+function openStoringen(){
+ if(S.over||!S.hasFault)return;
+ // Open camera-scherm als nog niet open
+ if(!S.cam){tcam();}
+ $('static-overlay').classList.add('on');
+ $('repair-btn').classList.add('visible');
+}
+
+/* ---- Reparatie ---- */
+function startRepair(e){
+ if(e)e.preventDefault();
+ if(repairInterval||!S.hasFault)return;
+ repairProgress=0;
+ $('repair-progress').style.width='0%';
+ const repAudio=$('snd-repair');
+ repAudio.currentTime=0;repAudio.play().catch(()=>{});
+ repairInterval=setInterval(()=>{
+  repairProgress+=100/30; // 3 seconden @ ~10ms ticks
+  $('repair-progress').style.width=Math.min(100,repairProgress)+'%';
+  if(repairProgress>=100){
+   clearInterval(repairInterval);repairInterval=null;
+   repAudio.pause();
+   S.hasFault=false;S.faultNotified=false;
+   $('static-overlay').classList.remove('on');
+   $('repair-btn').classList.remove('visible');
+   $('storingen-btn').classList.remove('visible');
+   draw();
+  }
+ },100);
+}
+
+function stopRepair(){
+ if(repairInterval){clearInterval(repairInterval);repairInterval=null;}
+ $('snd-repair').pause();
+ repairProgress=0;
+ $('repair-progress').style.width='0%';
 }
 
 /* ---- Deuren ---- */
@@ -248,8 +330,15 @@ function toggleDoor(i){
  if(S.over)return;
  S.d[i]=S.d[i]?0:1;
  snd(S.d[i]?'snd-dclose':'snd-dopen');
- if(S.d[i]===1&&((i===0&&S.gijsPos===3)||(i===1&&S.gijsPos===4))){
-  S.gijsAtDoor=false;S.doorCountdown=0;
+ // Als Gijs aan de deur staat en deur gaat dicht -> verjaard
+ if(S.attackPhase==='atdoor'&&S.attackDoor===i&&S.d[i]===1){
+  snd('snd-steps');
+  S.attackPhase='idle';
+  S.attackDoor=-1;
+  S.attackCountdown=0;
+  // Gijs keert terug naar cam 1 na vertraging
+  const delay=(Math.floor(Math.random()*6)+4)*1000;
+  setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
  }
  draw();
 }
@@ -271,7 +360,25 @@ function draw(){
  $('cd').textContent='CAM '+(S.activeCam+1);
  $('cam-name').textContent=cam.n;
  $('cs').style.backgroundImage=`url('${cam.bg}')`;
- $('ec').style.display=(S.gijsPos===S.activeCam)?'block':'none';
+
+ // Gijs zichtbaar op camera:
+ // - Normaal: op cam als gijsPos===activeCam EN niet in 'leaving'/'gone'/'atdoor' fase
+ // - Bij leaving: verdwijnt van cam (toon niet)
+ // - Bij gone/atdoor: niet zichtbaar op camera (hij is onderweg/aan de deur)
+ const showGijs=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+ $('ec').style.display=showGijs?'block':'none';
+
+ // Storing
+ const so=$('static-overlay');
+ if(S.hasFault){
+  so.classList.add('on');
+  $('repair-btn').classList.add('visible');
+  $('storingen-btn').classList.add('visible');
+ } else {
+  so.classList.remove('on');
+  $('repair-btn').classList.remove('visible');
+  if(!S.hasFault)$('storingen-btn').classList.remove('visible');
+ }
 
  // Deuren
  const dl=$('dl-btn'),dr=$('dr-btn');
@@ -292,40 +399,50 @@ function loop(){
  if(S.h>=6)return win();
 
  S.gijsTimer--;
- if(S.gijsAtDoor){
-  S.doorCountdown--;
-  if(S.doorCountdown<=0){
-   const doorIdx=S.gijsPos===3?0:1;
-   if(S.d[doorIdx]===0)return die();
-   S.gijsAtDoor=false;
+
+ // Aanvalsfase: 'atdoor' -> countdown
+ if(S.attackPhase==='atdoor'){
+  S.attackCountdown--;
+  if(S.attackCountdown<=0){
+   // Tijd om te reageren verstreken — deur open? -> dood
+   if(S.d[S.attackDoor]===0)return die();
+   // Deur dicht -> verjaard, terug naar idle
+   S.attackPhase='idle';
+   S.attackDoor=-1;
+   snd('snd-steps');
+   const delay=(Math.floor(Math.random()*6)+4)*1000;
+   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
   }
  }
+
  if(S.gijsTimer<=0){S.gijsTimer=getGijsDelay();moveGijs();}
  draw();
 }
 
 function moveGijs(){
+ if(S.attackPhase!=='idle')return; // Geen beweging tijdens aanval
  if(S.gijsPos===0)S.gijsPos=1;
  else if(S.gijsPos===1)S.gijsPos=2;
  else if(S.gijsPos===2)S.gijsPos=Math.random()<.5?3:4;
  else if(S.gijsPos===3||S.gijsPos===4){
+  // Aanval: eerst 'leaving' fase — verdwijnt van camera
   const doorIdx=S.gijsPos===3?0:1;
-  if(S.d[doorIdx]===1){
-   snd('snd-steps');
-   const delay=(Math.floor(Math.random()*6)+4)*1000;
-   S.gijsAtDoor=false;
-   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
-  } else {
-   S.gijsAtDoor=true;
-   S.doorCountdown=12;
-  }
+  S.attackPhase='leaving';
+  S.attackDoor=doorIdx;
+  // Na 2 seconden verdwenen van camera, dan 'atdoor' countdown starten
+  setTimeout(()=>{
+   if(S.over||S.attackPhase!=='leaving')return;
+   S.attackPhase='atdoor';
+   S.attackCountdown=12; // 12 seconden om te reageren
+   draw();
+  },2000);
  }
 }
 
 /* ---- Einde ---- */
 function die(){
  S.over=true;stopAmbience();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);stopRepair();
  $('door-ui').classList.remove('on');
  const j=$('js'),v=$('jv');
  j.style.display='flex';
@@ -337,7 +454,7 @@ function die(){
 
 function win(){
  S.over=true;stopAmbience();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);stopRepair();
  fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
 }
 
