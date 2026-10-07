@@ -18,6 +18,14 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #tm{position:absolute;top:10px;left:20px;z-index:3;font-size:20px;color:#fff;text-shadow:0 0 8px #fff5}
 #room{position:absolute;inset:0;background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
 
+/* Night intro scherm */
+#night-intro{position:absolute;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:60px}
+#night-intro.on{display:flex}
+#night-intro-bg{position:absolute;inset:0;background:url(Images/Night1Introduction.png) center/cover no-repeat}
+#night-intro-overlay{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+#night-intro-btn{position:relative;z-index:2;font-family:inherit;background:rgba(0,0,0,.8);color:#ddd;border:2px solid #666;padding:14px 40px;font-size:20px;cursor:pointer;letter-spacing:3px;transition:.2s;text-shadow:0 0 10px #fff5}
+#night-intro-btn:hover{background:rgba(30,30,30,.95);color:#fff;box-shadow:0 0 20px #fff3;border-color:#aaa}
+
 /* Camera monitor */
 #cam{position:absolute;inset:0;z-index:2;background:#040404;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start}
 #cam.on{display:flex}
@@ -53,15 +61,13 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 /* Onderste balk */
 #cambar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:#080808;border-top:2px solid #333;gap:10px;flex-shrink:0;min-height:56px}
-#spdbtn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:6px 14px;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap;min-width:130px;text-align:center}
+#spdbtn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:6px 0;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap;width:130px;text-align:center;display:block}
 #spdbtn.fast{background:#1a0000;border-color:#822;color:#f88;box-shadow:0 0 10px #f004}
 #spdbtn:hover{background:#333;color:#fff}
 #spdbtn.fast:hover{background:#500;color:#fff}
 
 /* Knoppen onderaan kamer */
 #bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
-
-
 
 /* Deur-UI (apart scherm) */
 #door-ui{position:absolute;inset:0;z-index:10;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
@@ -81,8 +87,25 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #pwr-bar-wrap{width:320px;height:6px;background:#1a1a1a;border:1px solid #333}
 #pwr-bar{height:100%;background:#fff;transition:width 1s linear;box-shadow:0 0 8px #fff5}
 
+/* Stress meter */
+#stress-meter{position:absolute;right:20px;bottom:80px;z-index:4;display:none;flex-direction:column;align-items:center;gap:6px}
+#stress-meter.visible{display:flex}
+#stress-img{width:80px;height:80px;object-fit:contain;border:2px solid #400;border-radius:4px;background:#0a0000;transition:border-color .3s}
+#stress-label{font-size:11px;color:#a44;letter-spacing:2px;text-align:center}
+#stress-bar-wrap{width:80px;height:6px;background:#1a0000;border:1px solid #400}
+#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00}
+
+/* Ogen dicht overlay */
+#eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
+#eyes-closed.on{display:block}
+
 #js{position:fixed;inset:0;z-index:20;background:#000;display:none;align-items:center;justify-content:center}
 #js video{width:100vw;height:100vh;object-fit:cover}
+
+/* GameOver scherm */
+#gameover-screen{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;background:#000}
+#gameover-screen.on{display:flex}
+#gameover-screen img{width:100vw;height:100vh;object-fit:cover}
 </style>
 </head>
 <body>
@@ -96,23 +119,41 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-laugh" src="Audio/Laugh.mp3" preload="auto"></audio>
 <audio id="snd-repair" src="Audio/Repair.mp3" preload="auto"></audio>
 <audio id="snd-camopen" src="Audio/CameraOpen.mp3" preload="auto"></audio>
+<audio id="snd-f3" src="Audio/F3.mp3" preload="auto"></audio>
+<audio id="snd-f4" src="Audio/F4.mp3" preload="auto"></audio>
+<audio id="snd-f5" src="Audio/F5.mp3" preload="auto"></audio>
+<audio id="snd-feardeath" src="Audio/FearDeath.mp3" preload="auto"></audio>
+
+<!-- Night intro -->
+<div id="night-intro">
+ <div id="night-intro-bg"></div>
+ <div id="night-intro-overlay"></div>
+ <button id="night-intro-btn" onclick="beginNight()">▶ START DE NACHT</button>
+</div>
 
 <div class="sc" id="menu">
  <h1>geGIJSeld</h1>
  <p style="color:#aaa">Je zit gevangen in een nachtmerrie.<br>Overleef tot 6 uur 's ochtends in je slaapkamer tegen Meester Gijs.</p>
  <p style="color:#555;font-size:14px">In de wereld van de gijzeler gelden andere regels. Gebruik de weinige informatie die je hebt om zijn locatie te traceren. Stroom is beperkt. Je kunt niet voor altijd achter je verdedigingen schuilen.</p>
- <button onclick="start()">START NACHT</button>
+ <button onclick="showNightIntro()">START NACHT</button>
 </div>
 
 <div class="sc" id="end" style="display:none">
  <h1 id="et"></h1>
  <p id="ep"></p>
- <button onclick="start()">OPNIEUW</button>
+ <button onclick="showNightIntro()">OPNIEUW</button>
 </div>
 
 <span id="tm">12 AM</span>
 
 <div id="room"></div>
+
+<!-- Stress meter -->
+<div id="stress-meter">
+ <div id="stress-label">STRESS</div>
+ <img id="stress-img" src="Images/GijsF1.png" alt="">
+ <div id="stress-bar-wrap"><div id="stress-bar"></div></div>
+</div>
 
 <!-- Camera UI -->
 <div id="cam">
@@ -159,13 +200,20 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <div id="bar">
  <button onclick="tcam()">BEVEILIGINGSSYSTEEM [SPATIE]</button>
-
  <button onclick="toggleDoorUI()">DEURSYSTEEM</button>
 </div>
 
 <div id="js">
  <video id="jv" src="Videos/GijsJumpscare.mp4" playsinline preload="auto"></video>
 </div>
+
+<!-- Gameover schermen -->
+<div id="gameover-screen">
+ <img id="gameover-img" src="Images/GameOver.png" alt="Game Over">
+</div>
+
+<!-- Ogen dicht -->
+<div id="eyes-closed"></div>
 </div>
 
 <script>
@@ -179,8 +227,7 @@ const CAMS=[
  {n:'5: Rechtergang',bg:'Camera/Cam5Background.png'}
 ];
 
-// +30% trager: 4000->5200, 1500->1950
-const SW_NORMAL=5200, SW_FAST=1950;
+const SW_NORMAL=5200,SW_FAST=1950;
 let S={};
 let camSwitchTimer=null;
 let camSwitchStart=0;
@@ -188,38 +235,204 @@ let progressRaf=null;
 let repairInterval=null;
 let repairProgress=0;
 
+// Stress
+const STRESS_MAX=100;
+const STRESS_F=[
+ {phase:1,img:'Images/GijsF1.png',threshold:0},
+ {phase:2,img:'Images/GijsF2.png',threshold:25},
+ {phase:3,img:'Images/GijsF3.png',threshold:50},
+ {phase:4,img:'Images/GijsF4.png',threshold:75},
+ {phase:5,img:'Images/GijsF5.png',threshold:90}
+];
+let stressPhase=0; // huidige fase index (0-4)
+let f5StartTime=0; // timestamp wanneer F5 bereikt werd
+let stressRaf=null;
+let eyesHoldTimer=null;
+let eyesHeld=false;
+let shiftDown=false;
+let stressDecayRaf=null;
+
 function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 function playAmbience(){const a=$('amb');if(!a)return;a.currentTime=0;a.play().catch(()=>{});}
 function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
 function getGijsDelay(){return Math.floor(Math.random()*10)+16;}
 
-function start(){
- stopAmbience();playAmbience();
+function showNightIntro(){
+ stopAmbience();
+ $('menu').style.display=$('end').style.display='none';
+ $('night-intro').classList.add('on');
+}
+
+function beginNight(){
+ $('night-intro').classList.remove('on');
+ snd('snd-camopen');
+ actualStart();
+}
+
+function actualStart(){
  if(camSwitchTimer)clearInterval(camSwitchTimer);
  cancelAnimationFrame(progressRaf);
  stopRepair();
+ resetStress();
  S={
   p:100,d:[0,0],h:0,
   cam:false,door:false,
   activeCam:0,fast:false,
   gijsPos:0,gijsTimer:getGijsDelay(),
-  // Aanval: 'idle'|'leaving'|'gone'|'atdoor'
   attackPhase:'idle',
-  attackDoor:-1,    // 0=links, 1=rechts
+  attackDoor:-1,
   attackCountdown:0,
   over:false,tick:0,
-  // Storing
   hasFault:false,faultNotified:false,showSecret:false
  };
- $('menu').style.display=$('end').style.display='none';
  $('js').style.display='none';
+ $('gameover-screen').classList.remove('on');
  $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
+ $('eyes-closed').classList.remove('on');
+ eyesHeld=false;shiftDown=false;
+ playAmbience();
  draw();
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
+ startStressLoop();
+}
+
+/* ---- Night intro ---- */
+// Hergebruik showNightIntro() voor opnieuw (zie button)
+
+/* ---- Stress ---- */
+function resetStress(){
+ S.stress=0;
+ stressPhase=0;
+ f5StartTime=0;
+ cancelAnimationFrame(stressRaf);
+ cancelAnimationFrame(stressDecayRaf);
+ stressRaf=null;stressDecayRaf=null;
+ updateStressUI();
+}
+
+function getStressPhaseIdx(val){
+ let idx=0;
+ for(let i=STRESS_F.length-1;i>=0;i--){
+  if(val>=STRESS_F[i].threshold){idx=i;break;}
+ }
+ return idx;
+}
+
+function startStressLoop(){
+ cancelAnimationFrame(stressRaf);
+ function tick(){
+  if(!S||S.over)return;
+  stressRaf=requestAnimationFrame(tick);
+  if(eyesHeld)return; // geen stress opbouw tijdens ogen dicht
+  const onCam=S.cam||S.door;
+  if(!onCam)return; // stress alleen opbouwen als Gijs zichtbaar + speler kijkt
+
+  // Controleer of Gijs zichtbaar is op actieve cam
+  const gijsVisible=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+  if(!gijsVisible)return;
+
+  S.stress=Math.min(STRESS_MAX,S.stress+0.008);
+  updateStressDisplay();
+ }
+ stressRaf=requestAnimationFrame(tick);
+}
+
+function startStressDecay(){
+ cancelAnimationFrame(stressDecayRaf);
+ function tick(){
+  if(!S||S.over){cancelAnimationFrame(stressDecayRaf);return;}
+  if(!eyesHeld){cancelAnimationFrame(stressDecayRaf);stressDecayRaf=null;return;}
+  stressDecayRaf=requestAnimationFrame(tick);
+  S.stress=Math.max(0,S.stress-0.05);
+  updateStressDisplay();
+ }
+ stressDecayRaf=requestAnimationFrame(tick);
+}
+
+function updateStressDisplay(){
+ updateStressUI();
+ const idx=getStressPhaseIdx(S.stress);
+ if(idx!==stressPhase){
+  const prev=stressPhase;
+  stressPhase=idx;
+  $('stress-img').src=STRESS_F[idx].img;
+  // Speel geluid af bij fase 3,4,5
+  if(idx===2&&prev<2)snd('snd-f3');
+  else if(idx===3&&prev<3)snd('snd-f4');
+  else if(idx===4&&prev<4){snd('snd-f5');f5StartTime=performance.now();}
+ }
+ // F5 30 seconde check
+ if(stressPhase===4&&f5StartTime>0){
+  if(performance.now()-f5StartTime>=30000){
+   fearDeath();
+  }
+ }
+}
+
+function updateStressUI(){
+ if(!S)return;
+ const pct=((S.stress||0)/STRESS_MAX)*100;
+ $('stress-bar').style.width=pct+'%';
+ const onCam=S&&(S.cam||S.door);
+ const sm=$('stress-meter');
+ if(!onCam&&S&&!S.over&&!eyesHeld){sm.classList.add('visible');}
+ else{sm.classList.remove('visible');}
+ // Kleur stress bar op basis van fase
+ const colors=['#0f0','#ff0','#f80','#f00','#f0f'];
+ $('stress-bar').style.background=colors[stressPhase]||'#f00';
+ $('stress-bar').style.boxShadow=`0 0 6px ${colors[stressPhase]||'#f00'}`;
+ $('stress-img').src=STRESS_F[stressPhase].img;
+}
+
+/* ---- Fear death ---- */
+function fearDeath(){
+ if(S.over)return;
+ S.over=true;
+ stopAmbience();
+ clearInterval(S.iv);
+ if(camSwitchTimer)clearInterval(camSwitchTimer);
+ cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);
+ cancelAnimationFrame(stressDecayRaf);
+ stopRepair();
+ snd('snd-feardeath');
+ setTimeout(()=>{
+  document.body.style.background='#000';
+  $('g').style.background='#000';
+  $('room').style.display='none';
+  $('cam').classList.remove('on');
+  $('door-ui').classList.remove('on');
+  $('bar').style.display='none';
+  $('tm').style.display='none';
+  $('stress-meter').classList.remove('visible');
+  setTimeout(()=>{
+   $('gameover-screen').classList.add('on');
+   $('gameover-img').src='Images/GameOverFear.png';
+   $('gameover-screen').onclick=()=>location.reload();
+  },800);
+ },300);
+}
+
+/* ---- Ogen sluiten (Shift) ---- */
+function openEyes(){
+ if(!eyesHeld)return;
+ eyesHeld=false;
+ $('eyes-closed').classList.remove('on');
+ cancelAnimationFrame(stressDecayRaf);
+ stressDecayRaf=null;
+ updateStressUI();
+}
+
+function closeEyes(){
+ if(eyesHeld||S.over)return;
+ eyesHeld=true;
+ $('eyes-closed').classList.add('on');
+ $('stress-meter').classList.remove('visible');
+ startStressDecay();
 }
 
 /* ---- Voortgangsbalk ---- */
@@ -247,12 +460,7 @@ function startCamCycle(){
   S.activeCam=(S.activeCam+1)%CAMS.length;
   camSwitchStart=performance.now();
   snd('snd-switch');
-  // 5% kans op storing ALLEEN bij versneld
-  if(S.fast&&!S.hasFault&&Math.random()<0.05){
-   S.hasFault=true;
-   S.faultNotified=true;
-  }
-  // 0.1% kans CameraSecret.png
+  if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
   S.showSecret=(Math.random()<0.001);
   draw();
  },interval);
@@ -264,7 +472,6 @@ function toggleSpeed(){
  S.fast=!S.fast;
  snd('snd-alarm');
  startCamCycle();
- draw();
 }
 
 function tcam(){
@@ -273,6 +480,7 @@ function tcam(){
  $('cam').classList.toggle('on',S.cam);
  if(S.cam){snd('snd-camopen');startCamCycle();}
  else{if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);$('cam-progress').style.width='0%';}
+ updateStressUI();
  draw();
 }
 
@@ -282,6 +490,7 @@ function toggleDoorUI(){
  S.door=!S.door;
  if(S.door)snd('snd-camopen');
  $('door-ui').classList.toggle('on',S.door);
+ updateStressUI();
  draw();
 }
 
@@ -294,7 +503,7 @@ function startRepair(e){
  const repAudio=$('snd-repair');
  repAudio.currentTime=0;repAudio.play().catch(()=>{});
  repairInterval=setInterval(()=>{
-  repairProgress+=100/30; // 3 seconden @ ~10ms ticks
+  repairProgress+=100/30;
   $('repair-progress').style.width=Math.min(100,repairProgress)+'%';
   if(repairProgress>=100){
    clearInterval(repairInterval);repairInterval=null;
@@ -319,13 +528,9 @@ function toggleDoor(i){
  if(S.over)return;
  S.d[i]=S.d[i]?0:1;
  snd(S.d[i]?'snd-dclose':'snd-dopen');
- // Als Gijs aan de deur staat en deur gaat dicht -> verjaard
  if(S.attackPhase==='atdoor'&&S.attackDoor===i&&S.d[i]===1){
   snd('snd-steps');
-  S.attackPhase='idle';
-  S.attackDoor=-1;
-  S.attackCountdown=0;
-  // Gijs keert terug naar cam 1 na vertraging
+  S.attackPhase='idle';S.attackDoor=-1;S.attackCountdown=0;
   const delay=(Math.floor(Math.random()*6)+4)*1000;
   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
  }
@@ -350,29 +555,20 @@ function draw(){
  $('cam-name').textContent=cam.n;
  $('cs').style.backgroundImage=S.showSecret?`url('Camera/CameraSecret.png')`:`url('${cam.bg}')`;
 
- // Gijs zichtbaar op camera:
- // - Normaal: op cam als gijsPos===activeCam EN niet in 'leaving'/'gone'/'atdoor' fase
- // - Bij leaving: verdwijnt van cam (toon niet)
- // - Bij gone/atdoor: niet zichtbaar op camera (hij is onderweg/aan de deur)
  const showGijs=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
  $('ec').style.display=showGijs?'block':'none';
 
- // Storing
  const so=$('static-overlay');
- if(S.hasFault){
-  so.classList.add('on');
-  $('repair-btn').classList.add('visible');
- } else {
-  so.classList.remove('on');
-  $('repair-btn').classList.remove('visible');
- }
+ if(S.hasFault){so.classList.add('on');$('repair-btn').classList.add('visible');}
+ else{so.classList.remove('on');$('repair-btn').classList.remove('visible');}
 
- // Deuren
  const dl=$('dl-btn'),dr=$('dr-btn');
  dl.className='d-btn'+(S.d[0]?' closed':'');
  dr.className='d-btn'+(S.d[1]?' closed':'');
  $('dl-st').textContent=S.d[0]?'DICHT':'OPEN';
  $('dr-st').textContent=S.d[1]?'DICHT':'OPEN';
+
+ updateStressUI();
 }
 
 /* ---- Game loop ---- */
@@ -384,44 +580,32 @@ function loop(){
  if(S.p<=0){S.p=0;S.d=[0,0];S.cam=false;$('cam').classList.remove('on');return die();}
  if(S.tick%45===0)S.h++;
  if(S.h>=6)return win();
-
  S.gijsTimer--;
-
- // Aanvalsfase: 'atdoor' -> countdown
  if(S.attackPhase==='atdoor'){
   S.attackCountdown--;
   if(S.attackCountdown<=0){
-   // Tijd om te reageren verstreken — deur open? -> dood
    if(S.d[S.attackDoor]===0)return die();
-   // Deur dicht -> verjaard, terug naar idle
-   S.attackPhase='idle';
-   S.attackDoor=-1;
+   S.attackPhase='idle';S.attackDoor=-1;
    snd('snd-steps');
    const delay=(Math.floor(Math.random()*6)+4)*1000;
    setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
   }
  }
-
  if(S.gijsTimer<=0){S.gijsTimer=getGijsDelay();moveGijs();}
  draw();
 }
 
 function moveGijs(){
- if(S.attackPhase!=='idle')return; // Geen beweging tijdens aanval
+ if(S.attackPhase!=='idle')return;
  if(S.gijsPos===0)S.gijsPos=1;
  else if(S.gijsPos===1)S.gijsPos=2;
  else if(S.gijsPos===2)S.gijsPos=Math.random()<.5?3:4;
  else if(S.gijsPos===3||S.gijsPos===4){
-  // Aanval: eerst 'leaving' fase — verdwijnt van camera
   const doorIdx=S.gijsPos===3?0:1;
-  S.attackPhase='leaving';
-  S.attackDoor=doorIdx;
-  // Na 2 seconden verdwenen van camera, dan 'atdoor' countdown starten
+  S.attackPhase='leaving';S.attackDoor=doorIdx;
   setTimeout(()=>{
    if(S.over||S.attackPhase!=='leaving')return;
-   S.attackPhase='atdoor';
-   S.attackCountdown=12; // 12 seconden om te reageren
-   draw();
+   S.attackPhase='atdoor';S.attackCountdown=12;draw();
   },2000);
  }
 }
@@ -429,11 +613,20 @@ function moveGijs(){
 /* ---- Einde ---- */
 function die(){
  S.over=true;stopAmbience();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);stopRepair();
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+ stopRepair();
  $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
  const j=$('js'),v=$('jv');
  j.style.display='flex';
- const done=()=>{if(j.style.display==='none')return;j.style.display='none';fin('JE BENT GEGIJSELD','Meester Gijs heeft je te pakken...');};
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  $('gameover-img').src='Images/GameOver.png';
+  $('gameover-screen').classList.add('on');
+  $('gameover-screen').onclick=()=>location.reload();
+ };
  v.onended=done;v.onerror=()=>setTimeout(done,1500);
  v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
  setTimeout(done,15000);
@@ -441,15 +634,29 @@ function die(){
 
 function win(){
  S.over=true;stopAmbience();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);stopRepair();
+ clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();
  fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
 }
 
 function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.display='flex';}
 
+/* ---- Keyboard ---- */
 addEventListener('keydown',e=>{
  if(!S||S.over)return;
- if(e.key===' '){e.preventDefault();tcam();}
+ if(e.key===' '){e.preventDefault();tcam();return;}
+ if(e.key==='Shift'&&!shiftDown){
+  shiftDown=true;
+  if(eyesHoldTimer)clearTimeout(eyesHoldTimer);
+  eyesHoldTimer=setTimeout(()=>{if(shiftDown)closeEyes();},2000);
+ }
+});
+addEventListener('keyup',e=>{
+ if(e.key==='Shift'){
+  shiftDown=false;
+  if(eyesHoldTimer){clearTimeout(eyesHoldTimer);eyesHoldTimer=null;}
+  openEyes();
+ }
 });
 </script>
 </body>
