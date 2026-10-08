@@ -87,12 +87,12 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #pwr-bar-wrap{width:320px;height:6px;background:#1a1a1a;border:1px solid #333}
 #pwr-bar{height:100%;background:#fff;transition:width 1s linear;box-shadow:0 0 8px #fff5}
 
-/* Stress meter — groter en beter zichtbaar */
-#stress-meter{position:absolute;left:50%;transform:translateX(-50%);bottom:90px;z-index:4;display:none;flex-direction:column;align-items:center;gap:6px;min-width:220px}
+/* Stress meter — rechtsonder */
+#stress-meter{position:absolute;right:14px;bottom:14px;z-index:4;display:none;flex-direction:column;align-items:flex-end;gap:4px}
 #stress-meter.visible{display:flex}
-#stress-label{font-size:14px;color:#f44;letter-spacing:3px;text-align:center;text-shadow:0 0 8px #f44}
-#stress-bar-wrap{width:220px;height:18px;background:#1a0000;border:2px solid #600;border-radius:3px;overflow:hidden}
-#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 10px #f00;border-radius:2px}
+#stress-label{font-size:11px;color:#f44;letter-spacing:2px;text-shadow:0 0 6px #f44}
+#stress-bar-wrap{width:140px;height:8px;background:#1a0000;border:1px solid #600;border-radius:2px;overflow:hidden}
+#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00;border-radius:2px}
 
 /* Ogen-sluiten knop — toggle bovenaan scherm */
 #eyes-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(10,0,20,.85);border:2px solid #664;color:#cc9;padding:8px 22px;font-size:13px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s,border-color .2s;border-radius:3px;opacity:0;pointer-events:none;text-align:center;white-space:nowrap}
@@ -263,10 +263,8 @@ let played5AM=false;
 
 // Stress
 const STRESS_MAX=100;
-// Stress opbouw: per seconde op camera (altijd, niet alleen bij Gijs)
-const STRESS_RATE_CAM_PER_SEC=[1,1.5,2.5,4,6];
-// Extra stress als Gijs zichtbaar
-const STRESS_RATE_GIJS_PER_SEC=[1,1.5,2.5,4,6];
+// Stress: 1% per seconde op beveiligings- of deursysteem
+const STRESS_RATE_PER_SEC=1;
 const STRESS_F=[
  {phase:1,img:'Images/GijsF1.png',threshold:0},
  {phase:2,img:'Images/GijsF2.png',threshold:25},
@@ -370,12 +368,7 @@ function startStressLoop(){
   const dt=(now-lastStressTick)/1000;
   lastStressTick=now;
   if(!onCam){return;}
-  // Basis stress voor camera kijken
-  let rate=STRESS_RATE_CAM_PER_SEC[stressPhase]||1;
-  // Extra stress als Gijs zichtbaar
-  const gijsVisible=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
-  if(gijsVisible) rate+=STRESS_RATE_GIJS_PER_SEC[stressPhase]||1;
-  S.stress=Math.min(STRESS_MAX,S.stress+rate*dt);
+  S.stress=Math.min(STRESS_MAX,S.stress+STRESS_RATE_PER_SEC*dt);
   updateStressDisplay();
  }
  stressRaf=requestAnimationFrame(tick);
@@ -413,9 +406,10 @@ function updateStressUI(){
  if(!S)return;
  const pct=((S.stress||0)/STRESS_MAX)*100;
  $('stress-bar').style.width=pct+'%';
- // Stress meter: toon altijd als game actief, niet als ogen dicht of game over
+ // Stress meter: alleen tonen als beveiligings- of deursysteem open is
  const sm=$('stress-meter');
- if(S&&!S.over&&!eyesHeld){sm.classList.add('visible');}
+ const systemOpen=S&&(S.cam||S.door);
+ if(systemOpen&&!S.over&&!eyesHeld){sm.classList.add('visible');}
  else{sm.classList.remove('visible');}
  const colors=['#0f0','#ff0','#f80','#f00','#f0f'];
  const c=colors[stressPhase]||'#f00';
