@@ -87,18 +87,19 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #pwr-bar-wrap{width:320px;height:6px;background:#1a1a1a;border:1px solid #333}
 #pwr-bar{height:100%;background:#fff;transition:width 1s linear;box-shadow:0 0 8px #fff5}
 
-/* Stress meter */
-#stress-meter{position:absolute;right:20px;bottom:80px;z-index:4;display:none;flex-direction:column;align-items:center;gap:6px}
+/* Stress meter — groter en beter zichtbaar */
+#stress-meter{position:absolute;left:50%;transform:translateX(-50%);bottom:90px;z-index:4;display:none;flex-direction:column;align-items:center;gap:6px;min-width:220px}
 #stress-meter.visible{display:flex}
-#stress-label{font-size:11px;color:#a44;letter-spacing:2px;text-align:center}
-#stress-bar-wrap{width:80px;height:8px;background:#1a0000;border:1px solid #400;border-radius:2px}
-#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00;border-radius:2px}
+#stress-label{font-size:14px;color:#f44;letter-spacing:3px;text-align:center;text-shadow:0 0 8px #f44}
+#stress-bar-wrap{width:220px;height:18px;background:#1a0000;border:2px solid #600;border-radius:3px;overflow:hidden}
+#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 10px #f00;border-radius:2px}
 
-/* Ogen-sluiten knop */
-#eyes-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(0,0,0,.7);border:1px solid #444;color:#aaa;padding:5px 14px;font-size:12px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s;border-radius:2px;opacity:0;pointer-events:none}
+/* Ogen-sluiten knop — hold-knop met voortgangsbalk */
+#eyes-btn{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(10,0,20,.85);border:2px solid #664;color:#cc9;padding:12px 28px;font-size:14px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s,border-color .2s;border-radius:3px;opacity:0;pointer-events:none;overflow:hidden;min-width:200px;text-align:center}
 #eyes-btn.visible{opacity:1;pointer-events:auto}
-#eyes-btn.active{background:rgba(0,0,0,.9);color:#fff;border-color:#888}
-#eyes-btn:hover{background:rgba(40,40,40,.85);color:#ddd}
+#eyes-btn.active{background:rgba(0,0,0,.95);color:#fff;border-color:#aa8;box-shadow:0 0 16px #aa84}
+#eyes-btn:hover{background:rgba(30,20,50,.9);color:#eee;border-color:#886}
+#eyes-hold-bar{position:absolute;bottom:0;left:0;height:4px;background:#aa8;width:0%;transition:none;box-shadow:0 0 8px #aa8}
 
 /* Ogen dicht overlay */
 #eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
@@ -111,6 +112,14 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #gameover-screen{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;background:#000}
 #gameover-screen.on{display:flex}
 #gameover-screen img{width:100vw;height:100vh;object-fit:cover}
+
+/* 6AM wekker animatie */
+#alarm-screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000}
+#alarm-screen.on{display:flex}
+#alarm-clock{font-size:120px;animation:shake 0.15s infinite}
+#alarm-time{font-size:80px;color:#fff;letter-spacing:8px;text-shadow:0 0 30px #fff,0 0 60px #fa0;margin-top:-10px}
+#alarm-msg{font-size:22px;color:#fa0;letter-spacing:4px;margin-top:20px;text-shadow:0 0 12px #fa0}
+@keyframes shake{0%{transform:rotate(-8deg) scale(1.05)}50%{transform:rotate(8deg) scale(1.1)}100%{transform:rotate(-8deg) scale(1.05)}}
 </style>
 </head>
 <body>
@@ -128,6 +137,9 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-f4" src="Audio/F4.mp3" preload="auto"></audio>
 <audio id="snd-f5" src="Audio/F5.mp3" preload="auto"></audio>
 <audio id="snd-feardeath" src="Audio/FearDeath.mp3" preload="auto"></audio>
+<audio id="snd-5am" src="Audio/5AM.mp3" preload="auto"></audio>
+<audio id="snd-gameover" src="Audio/GameOver.mp3" preload="auto"></audio>
+<audio id="snd-6am" src="Audio/6AM.mp3" preload="auto"></audio>
 
 <!-- Night intro -->
 <div id="night-intro">
@@ -155,12 +167,15 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <!-- Stress meter -->
 <div id="stress-meter">
- <div id="stress-label">STRESS</div>
+ <div id="stress-label">⚠ STRESS</div>
  <div id="stress-bar-wrap"><div id="stress-bar"></div></div>
 </div>
 
-<!-- Ogen-sluiten knop -->
-<button id="eyes-btn" onmousedown="closeEyes()" onmouseup="openEyes()" onmouseleave="openEyes()" ontouchstart="closeEyes()" ontouchend="openEyes()">👁 OGEN SLUITEN</button>
+<!-- Ogen-sluiten knop (hold) -->
+<button id="eyes-btn">
+ 👁 OGEN SLUITEN
+ <div id="eyes-hold-bar"></div>
+</button>
 
 <!-- Camera UI -->
 <div id="cam">
@@ -214,9 +229,16 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  <video id="jv" src="Videos/GijsJumpscare.mp4" playsinline preload="auto"></video>
 </div>
 
-<!-- Gameover schermen -->
+<!-- Gameover scherm -->
 <div id="gameover-screen">
  <img id="gameover-img" src="Images/GameOver.png" alt="Game Over">
+</div>
+
+<!-- 6AM wekker scherm -->
+<div id="alarm-screen">
+ <div id="alarm-clock">⏰</div>
+ <div id="alarm-time">06:00</div>
+ <div id="alarm-msg">JE HEBT OVERLEEFD</div>
 </div>
 
 <!-- Ogen dicht -->
@@ -235,18 +257,21 @@ const CAMS=[
 ];
 
 const SW_NORMAL=5200,SW_FAST=1950;
+const EYES_HOLD_MS=1500; // ms ingedrukt houden
 let S={};
 let camSwitchTimer=null;
 let camSwitchStart=0;
 let progressRaf=null;
 let repairInterval=null;
 let repairProgress=0;
+let played5AM=false;
 
 // Stress
 const STRESS_MAX=100;
-// Stress opbouw: per seconde dat Gijs zichtbaar is op actieve cam
-// Fase 1: 2/s, Fase 2: 3/s, Fase 3: 5/s, Fase 4: 8/s, Fase 5: 12/s
-const STRESS_RATE_PER_SEC=[2,3,5,8,12];
+// Stress opbouw: per seconde op camera (altijd, niet alleen bij Gijs)
+const STRESS_RATE_CAM_PER_SEC=[1,1.5,2.5,4,6];
+// Extra stress als Gijs zichtbaar
+const STRESS_RATE_GIJS_PER_SEC=[1,1.5,2.5,4,6];
 const STRESS_F=[
  {phase:1,img:'Images/GijsF1.png',threshold:0},
  {phase:2,img:'Images/GijsF2.png',threshold:25},
@@ -257,16 +282,18 @@ const STRESS_F=[
 let stressPhase=0;
 let f5StartTime=0;
 let stressRaf=null;
-let eyesHoldTimer=null;
-let eyesHeld=false;
-let shiftDown=false;
 let stressDecayRaf=null;
 let lastStressTick=0;
 
-// Gijs basis delay in seconden, per fase 2s sneller
-function getGijsDelay(){return Math.floor(Math.random()*10)+16;}
+// Ogen hold
+let eyesHeld=false;
+let eyesMouseDown=false;
+let eyesHoldStart=0;
+let eyesHoldRaf=null;
+let shiftDown=false;
+let eyesHoldTimer=null;
+
 function getGijsDelayForPhase(){
- // Fase 1=0 t/m 5: elke fase 2s sneller minimum
  const base=Math.floor(Math.random()*10)+16;
  const bonus=Math.min(stressPhase*2,10);
  return Math.max(4,base-bonus);
@@ -293,11 +320,12 @@ function actualStart(){
  cancelAnimationFrame(progressRaf);
  stopRepair();
  resetStress();
+ played5AM=false;
  S={
   p:100,d:[0,0],h:0,
   cam:false,door:false,
   activeCam:0,fast:false,
-  gijsPos:0,gijsTimer:getGijsDelay(),
+  gijsPos:0,gijsTimer:getGijsDelayForPhase(),
   attackPhase:'idle',
   attackDoor:-1,
   attackCountdown:0,
@@ -306,23 +334,22 @@ function actualStart(){
  };
  $('js').style.display='none';
  $('gameover-screen').classList.remove('on');
+ $('alarm-screen').classList.remove('on');
  $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
  $('eyes-closed').classList.remove('on');
- $('eyes-btn').classList.remove('visible','active');
- eyesHeld=false;shiftDown=false;
- $('eyes-btn').classList.add('visible');
+ eyesHeld=false;eyesMouseDown=false;shiftDown=false;
+ cancelAnimationFrame(eyesHoldRaf);eyesHoldRaf=null;
+ $('eyes-hold-bar').style.width='0%';
  playAmbience();
+ setupEyesBtn();
  draw();
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
  startStressLoop();
 }
-
-/* ---- Night intro ---- */
-// Hergebruik showNightIntro() voor opnieuw (zie button)
 
 /* ---- Stress ---- */
 function resetStress(){
@@ -352,11 +379,13 @@ function startStressLoop(){
   if(eyesHeld){lastStressTick=now;return;}
   const onCam=S.cam||S.door;
   if(!onCam){lastStressTick=now;return;}
-  const gijsVisible=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
-  if(!gijsVisible){lastStressTick=now;return;}
-  const dt=(now-lastStressTick)/1000; // seconden
+  const dt=(now-lastStressTick)/1000;
   lastStressTick=now;
-  const rate=STRESS_RATE_PER_SEC[stressPhase]||2;
+  // Basis stress voor camera kijken
+  let rate=STRESS_RATE_CAM_PER_SEC[stressPhase]||1;
+  // Extra stress als Gijs zichtbaar
+  const gijsVisible=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+  if(gijsVisible) rate+=STRESS_RATE_GIJS_PER_SEC[stressPhase]||1;
   S.stress=Math.min(STRESS_MAX,S.stress+rate*dt);
   updateStressDisplay();
  }
@@ -381,17 +410,13 @@ function updateStressDisplay(){
  if(idx!==stressPhase){
   const prev=stressPhase;
   stressPhase=idx;
-  $('stress-img').src=STRESS_F[idx].img;
-  // Speel geluid af bij fase 3,4,5
+  $('ec').src=STRESS_F[idx].img;
   if(idx===2&&prev<2)snd('snd-f3');
   else if(idx===3&&prev<3)snd('snd-f4');
   else if(idx===4&&prev<4){snd('snd-f5');f5StartTime=performance.now();}
  }
- // F5 30 seconde check
  if(stressPhase===4&&f5StartTime>0){
-  if(performance.now()-f5StartTime>=30000){
-   fearDeath();
-  }
+  if(performance.now()-f5StartTime>=30000){fearDeath();}
  }
 }
 
@@ -399,51 +424,58 @@ function updateStressUI(){
  if(!S)return;
  const pct=((S.stress||0)/STRESS_MAX)*100;
  $('stress-bar').style.width=pct+'%';
- const onCam=S&&(S.cam||S.door);
+ // Stress meter: toon altijd als game actief, niet als ogen dicht of game over
  const sm=$('stress-meter');
- if(!onCam&&S&&!S.over&&!eyesHeld){sm.classList.add('visible');}
+ if(S&&!S.over&&!eyesHeld){sm.classList.add('visible');}
  else{sm.classList.remove('visible');}
  const colors=['#0f0','#ff0','#f80','#f00','#f0f'];
- $('stress-bar').style.background=colors[stressPhase]||'#f00';
- $('stress-bar').style.boxShadow=`0 0 6px ${colors[stressPhase]||'#f00'}`;
- // Ogen-knop zichtbaarheid (altijd als game actief)
+ const c=colors[stressPhase]||'#f00';
+ $('stress-bar').style.background=c;
+ $('stress-bar').style.boxShadow=`0 0 10px ${c}`;
+ // Ogen-knop: toon alleen als NOT in cam/deuren systeem
  const eb=$('eyes-btn');
- if(S&&!S.over&&(S.cam||S.door||true)){eb.classList.add('visible');}
+ if(S&&!S.over&&!S.cam&&!S.door){eb.classList.add('visible');}
  else{eb.classList.remove('visible');}
- if(eyesHeld){eb.classList.add('active');eb.textContent='👁 OGEN OPEN';}
- else{eb.classList.remove('active');eb.textContent='👁 OGEN SLUITEN';}
+ if(eyesHeld){eb.classList.add('active');eb.childNodes[0].textContent='👁 OGEN OPEN ';}
+ else{eb.classList.remove('active');eb.childNodes[0].textContent='👁 OGEN SLUITEN ';}
 }
 
-/* ---- Fear death ---- */
-function fearDeath(){
+/* ---- Ogen hold-knop ---- */
+function setupEyesBtn(){
+ const btn=$('eyes-btn');
+ btn.onmousedown=startEyesHold;
+ btn.onmouseup=stopEyesHold;
+ btn.onmouseleave=stopEyesHold;
+ btn.ontouchstart=e=>{e.preventDefault();startEyesHold();};
+ btn.ontouchend=stopEyesHold;
+}
+
+function startEyesHold(){
  if(S.over)return;
- S.over=true;
- stopAmbience();
- clearInterval(S.iv);
- if(camSwitchTimer)clearInterval(camSwitchTimer);
- cancelAnimationFrame(progressRaf);
- cancelAnimationFrame(stressRaf);
- cancelAnimationFrame(stressDecayRaf);
- stopRepair();
- snd('snd-feardeath');
- setTimeout(()=>{
-  document.body.style.background='#000';
-  $('g').style.background='#000';
-  $('room').style.display='none';
-  $('cam').classList.remove('on');
-  $('door-ui').classList.remove('on');
-  $('bar').style.display='none';
-  $('tm').style.display='none';
-  $('stress-meter').classList.remove('visible');
-  setTimeout(()=>{
-   $('gameover-screen').classList.add('on');
-   $('gameover-img').src='Images/GameOverFear.png';
-   $('gameover-screen').onclick=()=>location.reload();
-  },800);
- },300);
+ eyesMouseDown=true;
+ eyesHoldStart=performance.now();
+ cancelAnimationFrame(eyesHoldRaf);
+ function tick(){
+  if(!eyesMouseDown){$('eyes-hold-bar').style.width='0%';return;}
+  const elapsed=performance.now()-eyesHoldStart;
+  const pct=Math.min(100,(elapsed/EYES_HOLD_MS)*100);
+  $('eyes-hold-bar').style.width=pct+'%';
+  if(elapsed>=EYES_HOLD_MS){
+   if(!eyesHeld)closeEyes();
+   return;
+  }
+  eyesHoldRaf=requestAnimationFrame(tick);
+ }
+ eyesHoldRaf=requestAnimationFrame(tick);
 }
 
-/* ---- Ogen sluiten (Shift) ---- */
+function stopEyesHold(){
+ eyesMouseDown=false;
+ cancelAnimationFrame(eyesHoldRaf);eyesHoldRaf=null;
+ $('eyes-hold-bar').style.width='0%';
+ openEyes();
+}
+
 function openEyes(){
  if(!eyesHeld)return;
  eyesHeld=false;
@@ -459,6 +491,36 @@ function closeEyes(){
  $('eyes-closed').classList.add('on');
  $('stress-meter').classList.remove('visible');
  startStressDecay();
+}
+
+/* ---- Fear death ---- */
+function fearDeath(){
+ if(S.over)return;
+ S.over=true;
+ stopAmbience();
+ clearInterval(S.iv);
+ if(camSwitchTimer)clearInterval(camSwitchTimer);
+ cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);
+ cancelAnimationFrame(stressDecayRaf);
+ stopRepair();
+ snd('snd-feardeath');
+ setTimeout(()=>{
+  $('g').style.background='#000';
+  $('room').style.display='none';
+  $('cam').classList.remove('on');
+  $('door-ui').classList.remove('on');
+  $('bar').style.display='none';
+  $('tm').style.display='none';
+  $('stress-meter').classList.remove('visible');
+  $('eyes-btn').classList.remove('visible','active');
+  setTimeout(()=>{
+   snd('snd-gameover');
+   $('gameover-img').src='Images/GameOverFear.png';
+   $('gameover-screen').classList.add('on');
+   $('gameover-screen').onclick=()=>location.reload();
+  },800);
+ },300);
 }
 
 /* ---- Voortgangsbalk ---- */
@@ -604,7 +666,10 @@ function loop(){
  const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
  S.p-=(basePower+camPower+doorPower);
  if(S.p<=0){S.p=0;S.d=[0,0];S.cam=false;$('cam').classList.remove('on');return die();}
- if(S.tick%45===0)S.h++;
+ if(S.tick%45===0){
+  S.h++;
+  if(S.h===5&&!played5AM){played5AM=true;snd('snd-5am');}
+ }
  if(S.h>=6)return win();
  S.gijsTimer--;
  if(S.attackPhase==='atdoor'){
@@ -650,6 +715,7 @@ function die(){
  const done=()=>{
   if(j.style.display==='none')return;
   j.style.display='none';
+  snd('snd-gameover');
   $('gameover-img').src='Images/GameOver.png';
   $('gameover-screen').classList.add('on');
   $('gameover-screen').onclick=()=>location.reload();
@@ -663,7 +729,19 @@ function win(){
  S.over=true;stopAmbience();
  clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();
- fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
+ $('bar').style.display='none';
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ snd('snd-6am');
+ $('alarm-screen').classList.add('on');
+ setTimeout(()=>{
+  $('alarm-screen').onclick=()=>{
+   $('alarm-screen').classList.remove('on');
+   fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
+  };
+ },2000);
 }
 
 function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.display='flex';}
@@ -675,15 +753,13 @@ addEventListener('keydown',e=>{
  if(e.key==='d'||e.key==='D'){e.preventDefault();toggleSpeed();return;}
  if(e.key==='Shift'&&!shiftDown){
   shiftDown=true;
-  if(eyesHoldTimer)clearTimeout(eyesHoldTimer);
-  eyesHoldTimer=setTimeout(()=>{if(shiftDown)closeEyes();},2000);
+  startEyesHold();
  }
 });
 addEventListener('keyup',e=>{
  if(e.key==='Shift'){
   shiftDown=false;
-  if(eyesHoldTimer){clearTimeout(eyesHoldTimer);eyesHoldTimer=null;}
-  openEyes();
+  stopEyesHold();
  }
 });
 </script>
