@@ -94,12 +94,11 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #stress-bar-wrap{width:220px;height:18px;background:#1a0000;border:2px solid #600;border-radius:3px;overflow:hidden}
 #stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 10px #f00;border-radius:2px}
 
-/* Ogen-sluiten knop — hold-knop met voortgangsbalk */
-#eyes-btn{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(10,0,20,.85);border:2px solid #664;color:#cc9;padding:12px 28px;font-size:14px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s,border-color .2s;border-radius:3px;opacity:0;pointer-events:none;overflow:hidden;min-width:200px;text-align:center}
+/* Ogen-sluiten knop — toggle bovenaan scherm */
+#eyes-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(10,0,20,.85);border:2px solid #664;color:#cc9;padding:8px 22px;font-size:13px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s,border-color .2s;border-radius:3px;opacity:0;pointer-events:none;text-align:center;white-space:nowrap}
 #eyes-btn.visible{opacity:1;pointer-events:auto}
 #eyes-btn.active{background:rgba(0,0,0,.95);color:#fff;border-color:#aa8;box-shadow:0 0 16px #aa84}
 #eyes-btn:hover{background:rgba(30,20,50,.9);color:#eee;border-color:#886}
-#eyes-hold-bar{position:absolute;bottom:0;left:0;height:4px;background:#aa8;width:0%;transition:none;box-shadow:0 0 8px #aa8}
 
 /* Ogen dicht overlay */
 #eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
@@ -171,11 +170,8 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  <div id="stress-bar-wrap"><div id="stress-bar"></div></div>
 </div>
 
-<!-- Ogen-sluiten knop (hold) -->
-<button id="eyes-btn">
- 👁 OGEN SLUITEN
- <div id="eyes-hold-bar"></div>
-</button>
+<!-- Ogen-sluiten knop -->
+<button id="eyes-btn">OGEN SLUITEN [SHIFT]</button>
 
 <!-- Camera UI -->
 <div id="cam">
@@ -257,7 +253,6 @@ const CAMS=[
 ];
 
 const SW_NORMAL=5200,SW_FAST=1950;
-const EYES_HOLD_MS=1500; // ms ingedrukt houden
 let S={};
 let camSwitchTimer=null;
 let camSwitchStart=0;
@@ -285,13 +280,9 @@ let stressRaf=null;
 let stressDecayRaf=null;
 let lastStressTick=0;
 
-// Ogen hold
+// Ogen toggle
 let eyesHeld=false;
-let eyesMouseDown=false;
-let eyesHoldStart=0;
-let eyesHoldRaf=null;
 let shiftDown=false;
-let eyesHoldTimer=null;
 
 function getGijsDelayForPhase(){
  const base=Math.floor(Math.random()*10)+16;
@@ -340,9 +331,7 @@ function actualStart(){
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
  $('eyes-closed').classList.remove('on');
- eyesHeld=false;eyesMouseDown=false;shiftDown=false;
- cancelAnimationFrame(eyesHoldRaf);eyesHoldRaf=null;
- $('eyes-hold-bar').style.width='0%';
+ eyesHeld=false;shiftDown=false;
  playAmbience();
  setupEyesBtn();
  draw();
@@ -378,9 +367,9 @@ function startStressLoop(){
   stressRaf=requestAnimationFrame(tick);
   if(eyesHeld){lastStressTick=now;return;}
   const onCam=S.cam||S.door;
-  if(!onCam){lastStressTick=now;return;}
   const dt=(now-lastStressTick)/1000;
   lastStressTick=now;
+  if(!onCam){return;}
   // Basis stress voor camera kijken
   let rate=STRESS_RATE_CAM_PER_SEC[stressPhase]||1;
   // Extra stress als Gijs zichtbaar
@@ -436,44 +425,21 @@ function updateStressUI(){
  const eb=$('eyes-btn');
  if(S&&!S.over&&!S.cam&&!S.door){eb.classList.add('visible');}
  else{eb.classList.remove('visible');}
- if(eyesHeld){eb.classList.add('active');eb.childNodes[0].textContent='👁 OGEN OPEN ';}
- else{eb.classList.remove('active');eb.childNodes[0].textContent='👁 OGEN SLUITEN ';}
+ if(eyesHeld){eb.classList.add('active');eb.textContent='OGEN OPEN [SHIFT]';}
+ else{eb.classList.remove('active');eb.textContent='OGEN SLUITEN [SHIFT]';}
 }
 
-/* ---- Ogen hold-knop ---- */
+/* ---- Ogen toggle-knop ---- */
 function setupEyesBtn(){
  const btn=$('eyes-btn');
- btn.onmousedown=startEyesHold;
- btn.onmouseup=stopEyesHold;
- btn.onmouseleave=stopEyesHold;
- btn.ontouchstart=e=>{e.preventDefault();startEyesHold();};
- btn.ontouchend=stopEyesHold;
+ btn.onclick=toggleEyes;
+ btn.ontouchstart=e=>{e.preventDefault();toggleEyes();};
 }
 
-function startEyesHold(){
+function toggleEyes(){
  if(S.over)return;
- eyesMouseDown=true;
- eyesHoldStart=performance.now();
- cancelAnimationFrame(eyesHoldRaf);
- function tick(){
-  if(!eyesMouseDown){$('eyes-hold-bar').style.width='0%';return;}
-  const elapsed=performance.now()-eyesHoldStart;
-  const pct=Math.min(100,(elapsed/EYES_HOLD_MS)*100);
-  $('eyes-hold-bar').style.width=pct+'%';
-  if(elapsed>=EYES_HOLD_MS){
-   if(!eyesHeld)closeEyes();
-   return;
-  }
-  eyesHoldRaf=requestAnimationFrame(tick);
- }
- eyesHoldRaf=requestAnimationFrame(tick);
-}
-
-function stopEyesHold(){
- eyesMouseDown=false;
- cancelAnimationFrame(eyesHoldRaf);eyesHoldRaf=null;
- $('eyes-hold-bar').style.width='0%';
- openEyes();
+ if(eyesHeld)openEyes();
+ else closeEyes();
 }
 
 function openEyes(){
@@ -753,14 +719,11 @@ addEventListener('keydown',e=>{
  if(e.key==='d'||e.key==='D'){e.preventDefault();toggleSpeed();return;}
  if(e.key==='Shift'&&!shiftDown){
   shiftDown=true;
-  startEyesHold();
+  toggleEyes();
  }
 });
 addEventListener('keyup',e=>{
- if(e.key==='Shift'){
-  shiftDown=false;
-  stopEyesHold();
- }
+ if(e.key==='Shift'){shiftDown=false;}
 });
 </script>
 </body>
