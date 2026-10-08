@@ -53,7 +53,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #repair-progress{position:absolute;bottom:0;left:0;height:3px;background:#f80;width:0%;transition:none;box-shadow:0 0 8px #f80}
 
 /* Gijs onderaan camera */
-#ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;filter:drop-shadow(0 0 20px #f00) drop-shadow(0 -4px 30px #800);z-index:1;display:none}
+#ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none}
 
 /* Voortgangsbalk camera-wissel */
 #cam-progress-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1);z-index:4}
@@ -90,10 +90,15 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 /* Stress meter */
 #stress-meter{position:absolute;right:20px;bottom:80px;z-index:4;display:none;flex-direction:column;align-items:center;gap:6px}
 #stress-meter.visible{display:flex}
-#stress-img{width:80px;height:80px;object-fit:contain;border:2px solid #400;border-radius:4px;background:#0a0000;transition:border-color .3s}
 #stress-label{font-size:11px;color:#a44;letter-spacing:2px;text-align:center}
-#stress-bar-wrap{width:80px;height:6px;background:#1a0000;border:1px solid #400}
-#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00}
+#stress-bar-wrap{width:80px;height:8px;background:#1a0000;border:1px solid #400;border-radius:2px}
+#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00;border-radius:2px}
+
+/* Ogen-sluiten knop */
+#eyes-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(0,0,0,.7);border:1px solid #444;color:#aaa;padding:5px 14px;font-size:12px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s;border-radius:2px;opacity:0;pointer-events:none}
+#eyes-btn.visible{opacity:1;pointer-events:auto}
+#eyes-btn.active{background:rgba(0,0,0,.9);color:#fff;border-color:#888}
+#eyes-btn:hover{background:rgba(40,40,40,.85);color:#ddd}
 
 /* Ogen dicht overlay */
 #eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
@@ -151,9 +156,11 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <!-- Stress meter -->
 <div id="stress-meter">
  <div id="stress-label">STRESS</div>
- <img id="stress-img" src="Images/GijsF1.png" alt="">
  <div id="stress-bar-wrap"><div id="stress-bar"></div></div>
 </div>
+
+<!-- Ogen-sluiten knop -->
+<button id="eyes-btn" onmousedown="closeEyes()" onmouseup="openEyes()" onmouseleave="openEyes()" ontouchstart="closeEyes()" ontouchend="openEyes()">👁 OGEN SLUITEN</button>
 
 <!-- Camera UI -->
 <div id="cam">
@@ -237,6 +244,9 @@ let repairProgress=0;
 
 // Stress
 const STRESS_MAX=100;
+// Stress opbouw: per seconde dat Gijs zichtbaar is op actieve cam
+// Fase 1: 2/s, Fase 2: 3/s, Fase 3: 5/s, Fase 4: 8/s, Fase 5: 12/s
+const STRESS_RATE_PER_SEC=[2,3,5,8,12];
 const STRESS_F=[
  {phase:1,img:'Images/GijsF1.png',threshold:0},
  {phase:2,img:'Images/GijsF2.png',threshold:25},
@@ -244,18 +254,27 @@ const STRESS_F=[
  {phase:4,img:'Images/GijsF4.png',threshold:75},
  {phase:5,img:'Images/GijsF5.png',threshold:90}
 ];
-let stressPhase=0; // huidige fase index (0-4)
-let f5StartTime=0; // timestamp wanneer F5 bereikt werd
+let stressPhase=0;
+let f5StartTime=0;
 let stressRaf=null;
 let eyesHoldTimer=null;
 let eyesHeld=false;
 let shiftDown=false;
 let stressDecayRaf=null;
+let lastStressTick=0;
+
+// Gijs basis delay in seconden, per fase 2s sneller
+function getGijsDelay(){return Math.floor(Math.random()*10)+16;}
+function getGijsDelayForPhase(){
+ // Fase 1=0 t/m 5: elke fase 2s sneller minimum
+ const base=Math.floor(Math.random()*10)+16;
+ const bonus=Math.min(stressPhase*2,10);
+ return Math.max(4,base-bonus);
+}
 
 function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 function playAmbience(){const a=$('amb');if(!a)return;a.currentTime=0;a.play().catch(()=>{});}
 function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
-function getGijsDelay(){return Math.floor(Math.random()*10)+16;}
 
 function showNightIntro(){
  stopAmbience();
@@ -292,7 +311,9 @@ function actualStart(){
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
  $('eyes-closed').classList.remove('on');
+ $('eyes-btn').classList.remove('visible','active');
  eyesHeld=false;shiftDown=false;
+ $('eyes-btn').classList.add('visible');
  playAmbience();
  draw();
  if(S.iv)clearInterval(S.iv);
@@ -324,18 +345,19 @@ function getStressPhaseIdx(val){
 
 function startStressLoop(){
  cancelAnimationFrame(stressRaf);
- function tick(){
+ lastStressTick=performance.now();
+ function tick(now){
   if(!S||S.over)return;
   stressRaf=requestAnimationFrame(tick);
-  if(eyesHeld)return; // geen stress opbouw tijdens ogen dicht
+  if(eyesHeld){lastStressTick=now;return;}
   const onCam=S.cam||S.door;
-  if(!onCam)return; // stress alleen opbouwen als Gijs zichtbaar + speler kijkt
-
-  // Controleer of Gijs zichtbaar is op actieve cam
+  if(!onCam){lastStressTick=now;return;}
   const gijsVisible=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
-  if(!gijsVisible)return;
-
-  S.stress=Math.min(STRESS_MAX,S.stress+0.008);
+  if(!gijsVisible){lastStressTick=now;return;}
+  const dt=(now-lastStressTick)/1000; // seconden
+  lastStressTick=now;
+  const rate=STRESS_RATE_PER_SEC[stressPhase]||2;
+  S.stress=Math.min(STRESS_MAX,S.stress+rate*dt);
   updateStressDisplay();
  }
  stressRaf=requestAnimationFrame(tick);
@@ -381,11 +403,15 @@ function updateStressUI(){
  const sm=$('stress-meter');
  if(!onCam&&S&&!S.over&&!eyesHeld){sm.classList.add('visible');}
  else{sm.classList.remove('visible');}
- // Kleur stress bar op basis van fase
  const colors=['#0f0','#ff0','#f80','#f00','#f0f'];
  $('stress-bar').style.background=colors[stressPhase]||'#f00';
  $('stress-bar').style.boxShadow=`0 0 6px ${colors[stressPhase]||'#f00'}`;
- $('stress-img').src=STRESS_F[stressPhase].img;
+ // Ogen-knop zichtbaarheid (altijd als game actief)
+ const eb=$('eyes-btn');
+ if(S&&!S.over&&(S.cam||S.door||true)){eb.classList.add('visible');}
+ else{eb.classList.remove('visible');}
+ if(eyesHeld){eb.classList.add('active');eb.textContent='👁 OGEN OPEN';}
+ else{eb.classList.remove('active');eb.textContent='👁 OGEN SLUITEN';}
 }
 
 /* ---- Fear death ---- */
@@ -532,7 +558,7 @@ function toggleDoor(i){
   snd('snd-steps');
   S.attackPhase='idle';S.attackDoor=-1;S.attackCountdown=0;
   const delay=(Math.floor(Math.random()*6)+4)*1000;
-  setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
+  setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
  }
  draw();
 }
@@ -546,7 +572,7 @@ function draw(){
  $('pwr-bar').style.width=p+'%';
 
  const sb=$('spdbtn');
- sb.textContent=S.fast?'VERTRAGEN':'VERSNELLEN';
+ sb.textContent=S.fast?'VERTRAGEN [D]':'VERSNELLEN [D]';
  sb.className=S.fast?'fast':'';
 
  const cam=CAMS[S.activeCam];
@@ -588,10 +614,10 @@ function loop(){
    S.attackPhase='idle';S.attackDoor=-1;
    snd('snd-steps');
    const delay=(Math.floor(Math.random()*6)+4)*1000;
-   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelay();draw();}},delay);
+   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
   }
  }
- if(S.gijsTimer<=0){S.gijsTimer=getGijsDelay();moveGijs();}
+ if(S.gijsTimer<=0){S.gijsTimer=getGijsDelayForPhase();moveGijs();}
  draw();
 }
 
@@ -618,6 +644,7 @@ function die(){
  stopRepair();
  $('door-ui').classList.remove('on');
  $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
  const j=$('js'),v=$('jv');
  j.style.display='flex';
  const done=()=>{
@@ -645,6 +672,7 @@ function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.dis
 addEventListener('keydown',e=>{
  if(!S||S.over)return;
  if(e.key===' '){e.preventDefault();tcam();return;}
+ if(e.key==='d'||e.key==='D'){e.preventDefault();toggleSpeed();return;}
  if(e.key==='Shift'&&!shiftDown){
   shiftDown=true;
   if(eyesHoldTimer)clearTimeout(eyesHoldTimer);
