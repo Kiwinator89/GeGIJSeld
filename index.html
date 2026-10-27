@@ -104,26 +104,45 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
 #eyes-closed.on{display:block}
 
+/* Dialoog scherm */
+#dialogue-screen{position:fixed;inset:0;z-index:35;display:none;flex-direction:column;align-items:center;justify-content:flex-end;background:radial-gradient(ellipse at center,#0d0510,#000);padding-bottom:80px}
+#dialogue-screen.on{display:flex}
+#dialogue-portrait{width:min(220px,40vw);opacity:.15;position:absolute;bottom:0;left:50%;transform:translateX(-50%);pointer-events:none;filter:grayscale(1)}
+#dialogue-box{position:relative;z-index:2;max-width:600px;width:90%;background:rgba(5,0,10,.92);border:1px solid #333;padding:30px 36px;margin-bottom:24px}
+#dialogue-text{font-size:clamp(16px,2.5vw,22px);color:#ddd;letter-spacing:1px;line-height:1.7;min-height:80px;text-shadow:0 0 8px #fff2}
+#dialogue-next{font-family:inherit;background:transparent;border:1px solid #444;color:#666;padding:10px 28px;font-size:14px;cursor:pointer;letter-spacing:3px;transition:.2s;margin-top:20px;display:block;margin-left:auto}
+#dialogue-next:hover{color:#aaa;border-color:#888}
+#dialogue-name{font-size:11px;color:#444;letter-spacing:4px;margin-bottom:12px;text-transform:uppercase}
+
 #js{position:fixed;inset:0;z-index:20;background:#000;display:none;align-items:center;justify-content:center}
 #js video{width:100vw;height:100vh;object-fit:cover}
 
 /* GameOver scherm */
-#gameover-screen{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;background:#000}
+#gameover-screen{position:fixed;inset:0;z-index:25;display:none;flex-direction:column;align-items:center;justify-content:flex-end;background:#000;padding-bottom:60px}
 #gameover-screen.on{display:flex}
-#gameover-screen img{width:100vw;height:100vh;object-fit:cover}
+#gameover-screen img{position:absolute;inset:0;width:100vw;height:100vh;object-fit:cover}
+#go-title{position:relative;z-index:2;font-size:min(14vw,100px);color:#f00;text-shadow:0 0 30px #f00,0 0 60px #900;letter-spacing:6px;font-family:'Courier New',monospace;animation:gopulse 1.2s ease-in-out infinite}
+#go-back-btn{position:relative;z-index:2;font-family:'Courier New',monospace;background:rgba(0,0,0,.85);color:#f44;border:2px solid #f00;padding:14px 36px;font-size:18px;cursor:pointer;letter-spacing:3px;transition:.2s;text-shadow:0 0 10px #f00;margin-top:16px}
+#go-back-btn:hover{background:#1a0000;box-shadow:0 0 20px #f006;color:#fff}
+@keyframes gopulse{0%,100%{opacity:1}50%{opacity:.7}}
 
-/* 6AM wekker animatie */
-#alarm-screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000}
+/* 6AM scherm */
+#alarm-screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0a0a1a,#000);cursor:pointer}
 #alarm-screen.on{display:flex}
-#alarm-clock{font-size:120px;animation:shake 0.15s infinite}
-#alarm-time{font-size:80px;color:#fff;letter-spacing:8px;text-shadow:0 0 30px #fff,0 0 60px #fa0;margin-top:-10px}
+#alarm-glyph{width:80px;height:80px;border:3px solid #fa0;border-radius:50%;box-shadow:0 0 30px #fa0,0 0 60px #fa08;animation:alarmglow 0.8s ease-in-out infinite alternate;position:relative;margin-bottom:20px}
+#alarm-glyph::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:#fa0;border-radius:50%;box-shadow:0 0 15px #fa0}
+#alarm-glyph::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-100%) rotate(-45deg);width:2px;height:24px;background:#fa0;transform-origin:bottom center;animation:clockhand 1s step-end infinite}
+#alarm-time{font-size:80px;color:#fff;letter-spacing:8px;text-shadow:0 0 30px #fff,0 0 60px #fa0;margin-top:0}
 #alarm-msg{font-size:22px;color:#fa0;letter-spacing:4px;margin-top:20px;text-shadow:0 0 12px #fa0}
-@keyframes shake{0%{transform:rotate(-8deg) scale(1.05)}50%{transform:rotate(8deg) scale(1.1)}100%{transform:rotate(-8deg) scale(1.05)}}
+#alarm-sub{font-size:13px;color:#555;letter-spacing:3px;margin-top:30px}
+@keyframes alarmglow{0%{box-shadow:0 0 20px #fa0,0 0 40px #fa04}100%{box-shadow:0 0 40px #fa0,0 0 80px #fa08}}
+@keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg)}100%{transform:translate(-50%,-100%) rotate(360deg)}}
 </style>
 </head>
 <body>
 <div id="g">
 <audio id="amb" src="Audio/Ambience.mp3" loop preload="auto"></audio>
+<audio id="snd-menu" src="Audio/Menu.mp3" loop preload="auto"></audio>
 <audio id="snd-switch" src="Audio/CameraSwitch.mp3" preload="auto"></audio>
 <audio id="snd-alarm" src="Audio/Alarm.mp3" preload="auto"></audio>
 <audio id="snd-dclose" src="Audio/DoorClose.mp3" preload="auto"></audio>
@@ -228,13 +247,26 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <!-- Gameover scherm -->
 <div id="gameover-screen">
  <img id="gameover-img" src="Images/GameOver.png" alt="Game Over">
+ <div id="go-title">GAME OVER</div>
+ <button id="go-back-btn" onclick="goToMenu()">TERUG NAAR MENU</button>
 </div>
 
-<!-- 6AM wekker scherm -->
+<!-- 6AM scherm -->
 <div id="alarm-screen">
- <div id="alarm-clock">⏰</div>
+ <div id="alarm-glyph"></div>
  <div id="alarm-time">06:00</div>
  <div id="alarm-msg">JE HEBT OVERLEEFD</div>
+ <div id="alarm-sub">[ klik om verder te gaan ]</div>
+</div>
+
+<!-- Dialoog scherm -->
+<div id="dialogue-screen">
+ <div id="dialogue-portrait"><img src="Images/GijsF1.png" style="width:100%;display:block"></div>
+ <div id="dialogue-box">
+  <div id="dialogue-name">— onbekende stem —</div>
+  <div id="dialogue-text"></div>
+  <button id="dialogue-next" onclick="nextDialogue()">VOLGENDE ›</button>
+ </div>
 </div>
 
 <!-- Ogen dicht -->
@@ -243,6 +275,14 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <script>
 function $(id){return document.getElementById(id)}
+
+// Menu muziek bij laden
+window.addEventListener('load',()=>{
+ document.body.addEventListener('click',function startMenu(){
+  playMenuAudio();
+  document.body.removeEventListener('click',startMenu);
+ },{once:true});
+});
 
 const CAMS=[
  {n:'1: Woonkamer',bg:'Camera/Cam1Background.png'},
@@ -292,15 +332,31 @@ function getGijsDelayForPhase(){
 function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 function playAmbience(){const a=$('amb');if(!a)return;a.currentTime=0;a.play().catch(()=>{});}
 function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
+function stopAllAudio(){
+ document.querySelectorAll('audio').forEach(a=>{try{a.pause();a.currentTime=0;}catch(e){}});
+}
+function playMenuAudio(){
+ stopAllAudio();
+ const a=$('snd-menu');if(!a)return;a.currentTime=0;a.play().catch(()=>{});
+}
+function goToMenu(){
+ $('gameover-screen').classList.remove('on');
+ $('dialogue-screen').classList.remove('on');
+ $('alarm-screen').classList.remove('on');
+ $('end').style.display='none';
+ $('menu').style.display='flex';
+ playMenuAudio();
+}
 
 function showNightIntro(){
- stopAmbience();
+ stopAllAudio();
  $('menu').style.display=$('end').style.display='none';
  $('night-intro').classList.add('on');
 }
 
 function beginNight(){
  $('night-intro').classList.remove('on');
+ stopAllAudio();
  snd('snd-camopen');
  actualStart();
 }
@@ -475,7 +531,6 @@ function fearDeath(){
    snd('snd-gameover');
    $('gameover-img').src='Images/GameOverFear.png';
    $('gameover-screen').classList.add('on');
-   $('gameover-screen').onclick=()=>location.reload();
   },800);
  },300);
 }
@@ -496,10 +551,20 @@ function startProgressBar(){
 }
 
 /* ---- Camera auto-switch ---- */
-function startCamCycle(){
+
+function toggleSpeed(){
+ if(S.over||!S.cam)return;
+ S.fast=!S.fast;
+ snd('snd-alarm');
+ // bewaar verstreken fractie om timer NIET te resetten
+ const elapsed=performance.now()-camSwitchStart;
+ const oldInterval=S.fast?SW_NORMAL:SW_FAST;
+ const newInterval=S.fast?SW_FAST:SW_NORMAL;
+ const fraction=Math.min(1,elapsed/oldInterval);
  if(camSwitchTimer)clearInterval(camSwitchTimer);
- const interval=S.fast?SW_FAST:SW_NORMAL;
- camSwitchStart=performance.now();
+ cancelAnimationFrame(progressRaf);
+ // start cycle met gecorrigeerde starttijd zodat voortgang behouden blijft
+ camSwitchStart=performance.now()-fraction*newInterval;
  camSwitchTimer=setInterval(()=>{
   if(S.over||!S.cam)return;
   S.activeCam=(S.activeCam+1)%CAMS.length;
@@ -508,23 +573,36 @@ function startCamCycle(){
   if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
   S.showSecret=(Math.random()<0.001);
   draw();
- },interval);
+ },newInterval);
  startProgressBar();
-}
-
-function toggleSpeed(){
- if(S.over)return;
- S.fast=!S.fast;
- snd('snd-alarm');
- startCamCycle();
 }
 
 function tcam(){
  if(S.over||S.door)return;
  S.cam=!S.cam;
  $('cam').classList.toggle('on',S.cam);
- if(S.cam){snd('snd-camopen');startCamCycle();}
- else{if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);$('cam-progress').style.width='0%';}
+ if(S.cam){
+  snd('snd-camopen');
+  // start cycle ZONDER huidige camera te resetten
+  if(camSwitchTimer)clearInterval(camSwitchTimer);
+  cancelAnimationFrame(progressRaf);
+  camSwitchStart=performance.now();
+  const interval=S.fast?SW_FAST:SW_NORMAL;
+  camSwitchTimer=setInterval(()=>{
+   if(S.over||!S.cam)return;
+   S.activeCam=(S.activeCam+1)%CAMS.length;
+   camSwitchStart=performance.now();
+   snd('snd-switch');
+   if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
+   S.showSecret=(Math.random()<0.001);
+   draw();
+  },interval);
+  startProgressBar();
+ } else {
+  if(camSwitchTimer)clearInterval(camSwitchTimer);
+  cancelAnimationFrame(progressRaf);
+  $('cam-progress').style.width='0%';
+ }
  updateStressUI();
  draw();
 }
@@ -625,7 +703,7 @@ function loop(){
  if(S.p<=0){S.p=0;S.d=[0,0];S.cam=false;$('cam').classList.remove('on');return die();}
  if(S.tick%45===0){
   S.h++;
-  if(S.h===5&&!played5AM){played5AM=true;snd('snd-5am');}
+  if(S.h===5&&!played5AM){played5AM=true;stopAmbience();snd('snd-5am');}
  }
  if(S.h>=6)return win();
  S.gijsTimer--;
@@ -660,7 +738,7 @@ function moveGijs(){
 
 /* ---- Einde ---- */
 function die(){
- S.over=true;stopAmbience();
+ S.over=true;stopAllAudio();
  clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
  stopRepair();
@@ -675,7 +753,6 @@ function die(){
   snd('snd-gameover');
   $('gameover-img').src='Images/GameOver.png';
   $('gameover-screen').classList.add('on');
-  $('gameover-screen').onclick=()=>location.reload();
  };
  v.onended=done;v.onerror=()=>setTimeout(done,1500);
  v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
@@ -683,7 +760,7 @@ function die(){
 }
 
 function win(){
- S.over=true;stopAmbience();
+ S.over=true;stopAllAudio();
  clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();
  $('bar').style.display='none';
@@ -696,12 +773,63 @@ function win(){
  setTimeout(()=>{
   $('alarm-screen').onclick=()=>{
    $('alarm-screen').classList.remove('on');
-   fin('6 AM — OVERLEEFD','Je wordt wakker. Of toch niet...');
+   startDialogue();
   };
  },2000);
 }
 
-function fin(a,b){$('et').textContent=a;$('ep').textContent=b;$('end').style.display='flex';}
+/* ---- Dialoog ---- */
+const DIALOGUE=[
+ 'Ik zal mezelf nooit kunnen vergeven.',
+ 'Het begon allemaal als een grap.',
+ 'Het had nooit zo ver hoeven te komen.',
+ 'Dit allemaal om maar 1 prankcall.',
+ 'De laatste tijd heb ik nachtmerries dat ik hem weer zie.',
+ 'Zijn lichaam was helemaal misvormd en niet meer te herkennen.',
+ 'Ik heb een enorme angst dat als ik gegijzeld word in mijn droom dat ik nooit meer zal ontwaken.',
+ 'Nooit meer zal ontwaken.',
+ 'NOOIT MEER ZAL ONTWAKEN!!!'
+];
+let dialogueIdx=0;
+
+function startDialogue(){
+ dialogueIdx=0;
+ const ds=$('dialogue-screen');
+ ds.classList.add('on');
+ showDialogueLine();
+}
+
+function showDialogueLine(){
+ const txt=$('dialogue-text');
+ const line=DIALOGUE[dialogueIdx];
+ txt.textContent=line;
+ // Laatste zin: verberg Volgende knop na korte delay
+ const btn=$('dialogue-next');
+ btn.style.display='block';
+ if(dialogueIdx===DIALOGUE.length-1){
+  btn.style.display='none';
+  setTimeout(()=>{
+   $('dialogue-screen').classList.remove('on');
+   stopAllAudio();
+   $('menu').style.display='flex';
+   $('night-intro').classList.remove('on');
+   playMenuAudio();
+  },3500);
+ }
+}
+
+function nextDialogue(){
+ snd('snd-camopen');
+ dialogueIdx++;
+ if(dialogueIdx<DIALOGUE.length){
+  showDialogueLine();
+ } else {
+  $('dialogue-screen').classList.remove('on');
+  stopAllAudio();
+  $('menu').style.display='flex';
+  playMenuAudio();
+ }
+}
 
 /* ---- Keyboard ---- */
 addEventListener('keydown',e=>{
