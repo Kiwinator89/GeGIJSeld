@@ -114,7 +114,14 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #dialogue-next:hover{color:#aaa;border-color:#888}
 #dialogue-name{font-size:11px;color:#444;letter-spacing:4px;margin-bottom:12px;text-transform:uppercase}
 
-#js{position:fixed;inset:0;z-index:20;background:#000;display:none;align-items:center;justify-content:center}
+/* Waarschuwingsscherm */
+#warning-screen{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:30px}
+#warning-screen.off{display:none}
+#warning-text{max-width:640px;font-size:clamp(16px,2.6vw,24px);line-height:1.7;color:#ddd;letter-spacing:1px}
+#warning-text b{display:block;color:#f22;font-size:clamp(24px,5vw,44px);text-shadow:0 0 20px #f00;margin-bottom:18px;letter-spacing:3px}
+#warning-btn{letter-spacing:3px;padding:14px 36px}
+#bar button:disabled{opacity:.25;cursor:not-allowed;box-shadow:none}
+#js{position:fixed;inset:0;z-index:60;background:#000;display:none;align-items:center;justify-content:center}
 #js video{width:100vw;height:100vh;object-fit:cover}
 
 /* GameOver scherm */
@@ -158,6 +165,13 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-5am" src="Audio/5AM.mp3" preload="auto"></audio>
 <audio id="snd-gameover" src="Audio/GameOver.mp3" preload="auto"></audio>
 <audio id="snd-6am" src="Audio/6AM.mp3" preload="auto"></audio>
+<audio id="snd-power" src="Audio/Power.mp3" preload="auto"></audio>
+
+<!-- Waarschuwingsscherm -->
+<div id="warning-screen">
+ <div id="warning-text"><b>WAARSCHUWING!!</b>Dit spel bevat jumpscares en andere harde geluiden! Voor de beste ervaring speel met koptelefoon in een donkere kamer.</div>
+ <button id="warning-btn" onclick="dismissWarning()">TOCH DOORGAAN</button>
+</div>
 
 <!-- Night intro -->
 <div id="night-intro">
@@ -276,13 +290,11 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <script>
 function $(id){return document.getElementById(id)}
 
-// Menu muziek bij laden
-window.addEventListener('load',()=>{
- document.body.addEventListener('click',function startMenu(){
-  playMenuAudio();
-  document.body.removeEventListener('click',startMenu);
- },{once:true});
-});
+// Waarschuwingsscherm: pas na klik op de knop gaat het menu (en Menu.mp3) aan
+function dismissWarning(){
+ $('warning-screen').classList.add('off');
+ playMenuAudio();
+}
 
 const CAMS=[
  {n:'1: Woonkamer',bg:'Camera/Cam1Background.png'},
@@ -304,7 +316,7 @@ let played5AM=false;
 // Stress
 const STRESS_MAX=100;
 // Stress: 1% per seconde op het beveiligingssysteem
-const STRESS_RATE_PER_SEC=1;
+const STRESS_RATE_PER_SEC=1.4; // 40% sneller dan voorheen (was 1)
 const STRESS_F=[
  {phase:1,img:'Images/GijsF1.png',threshold:0},
  {phase:2,img:'Images/GijsF2.png',threshold:25},
@@ -318,6 +330,18 @@ let stressRaf=null;
 let stressDecayRaf=null;
 let stressInterval=null;
 let lastStressTick=0;
+const STRESS_SOUNDS=['snd-f3','snd-f4','snd-f5'];
+const STRESS_VOLUME=0.3;
+function stopStressSounds(){
+ STRESS_SOUNDS.forEach(id=>{const a=$(id);if(a){a.pause();a.currentTime=0;}});
+}
+function playStressSound(id){
+ stopStressSounds();
+ const a=$(id);if(!a)return;
+ a.volume=STRESS_VOLUME;a.currentTime=0;a.play().catch(()=>{});
+}
+// Camera-wissel voortgang (0..1) blijft bewaard bij sluiten/heropenen en snelheid wisselen
+let camFrac=0;
 
 // Ogen toggle
 let eyesHeld=false;
@@ -362,8 +386,12 @@ function beginNight(){
 }
 
 function actualStart(){
- if(camSwitchTimer)clearInterval(camSwitchTimer);
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ camSwitchTimer=null;camFrac=0;
  cancelAnimationFrame(progressRaf);
+ $('cam-progress').style.width='0%';
+ $('room').style.display='';$('bar').style.display='';$('tm').style.display='';
+ setBarDisabled(false);
  stopRepair();
  resetStress();
  played5AM=false;
@@ -375,7 +403,7 @@ function actualStart(){
   attackPhase:'idle',
   attackDoor:-1,
   attackCountdown:0,
-  over:false,tick:0,
+  over:false,powerOut:false,tick:0,
   hasFault:false,faultNotified:false,showSecret:false
  };
  $('js').style.display='none';
@@ -400,6 +428,7 @@ function resetStress(){
  S.stress=0;
  stressPhase=0;
  f5StartTime=0;
+ stopStressSounds();
  cancelAnimationFrame(stressRaf);
  cancelAnimationFrame(stressDecayRaf);
  stressRaf=null;stressDecayRaf=null;
@@ -445,13 +474,18 @@ function updateStressDisplay(){
   const prev=stressPhase;
   stressPhase=idx;
   $('ec').src=STRESS_F[idx].img;
-  if(idx===2&&prev<2)snd('snd-f3');
-  else if(idx===3&&prev<3)snd('snd-f4');
-  else if(idx===4&&prev<4){snd('snd-f5');f5StartTime=performance.now();}
+  // Vorige fase is voorbij: stop de bijbehorende stressgeluiden
+  stopStressSounds();
+  if(prev===4&&idx<4)f5StartTime=0;
+  if(idx===2&&prev<2)playStressSound('snd-f3');
+  else if(idx===3&&prev<3)playStressSound('snd-f4');
+  else if(idx===4&&prev<4){playStressSound('snd-f5');f5StartTime=performance.now();}
  }
- if(stressPhase===4&&f5StartTime>0){
-  if(performance.now()-f5StartTime>=30000){fearDeath();}
- }
+ checkFearDeath();
+}
+
+function checkFearDeath(){
+ if(S&&!S.over&&stressPhase===4&&f5StartTime>0&&performance.now()-f5StartTime>=30000)fearDeath();
 }
 
 function updateStressUI(){
@@ -506,44 +540,71 @@ function closeEyes(){
  startStressDecay();
 }
 
+/* ---- Jumpscare (video) ---- */
+let jsAudioCtx=null,jsGainNode=null;
+function boostJumpscareVolume(v){
+ v.muted=false;v.volume=1;
+ // Extra versterking via Web Audio (werkt niet vanaf file://, dan blijft het op max volume van het element)
+ if(location.protocol==='file:')return;
+ try{
+  if(!jsAudioCtx){
+   jsAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+   const src=jsAudioCtx.createMediaElementSource(v);
+   jsGainNode=jsAudioCtx.createGain();
+   const comp=jsAudioCtx.createDynamicsCompressor();
+   src.connect(jsGainNode);jsGainNode.connect(comp);comp.connect(jsAudioCtx.destination);
+  }
+  jsGainNode.gain.value=2.5;
+  if(jsAudioCtx.state==='suspended')jsAudioCtx.resume();
+ }catch(e){}
+}
+
+function playJumpscare(gameOverImg){
+ const j=$('js'),v=$('jv');
+ $('eyes-closed').classList.remove('on');
+ j.style.display='flex';
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  snd('snd-gameover');
+  $('gameover-img').src=gameOverImg;
+  $('gameover-screen').classList.add('on');
+ };
+ v.onended=done;v.onerror=()=>setTimeout(done,1500);
+ boostJumpscareVolume(v);
+ v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+ setTimeout(done,15000);
+}
+
 /* ---- Fear death ---- */
 function fearDeath(){
  if(S.over)return;
- S.over=true;
- stopAmbience();
+ S.over=true;eyesHeld=false;
+ stopAllAudio();
  clearInterval(S.iv);
- if(camSwitchTimer)clearInterval(camSwitchTimer);
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
  cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);
  cancelAnimationFrame(stressDecayRaf);
  stopRepair();
- snd('snd-feardeath');
- setTimeout(()=>{
-  $('g').style.background='#000';
-  $('room').style.display='none';
-  $('cam').classList.remove('on');
-  $('door-ui').classList.remove('on');
-  $('bar').style.display='none';
-  $('tm').style.display='none';
-  $('stress-meter').classList.remove('visible');
-  $('eyes-btn').classList.remove('visible','active');
-  setTimeout(()=>{
-   snd('snd-gameover');
-   $('gameover-img').src='Images/GameOverFear.png';
-   $('gameover-screen').classList.add('on');
-  },800);
- },300);
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('bar').style.display='none';
+ $('tm').style.display='none';
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ playJumpscare('Images/GameOverFear.png');
 }
 
 /* ---- Voortgangsbalk ---- */
+function camInterval(){return S.fast?SW_FAST:SW_NORMAL;}
+
 function startProgressBar(){
  cancelAnimationFrame(progressRaf);
- camSwitchStart=performance.now();
- const interval=S.fast?SW_FAST:SW_NORMAL;
  function tick(){
-  if(!S.cam||S.over){$('cam-progress').style.width='0%';return;}
+  if(!S.cam||S.over){return;}
   const elapsed=performance.now()-camSwitchStart;
-  const pct=Math.min(100,(elapsed/interval)*100);
+  const pct=Math.min(100,(elapsed/camInterval())*100);
   $('cam-progress').style.width=pct+'%';
   progressRaf=requestAnimationFrame(tick);
  }
@@ -551,64 +612,64 @@ function startProgressBar(){
 }
 
 /* ---- Camera auto-switch ---- */
-
-function toggleSpeed(){
- if(S.over||!S.cam)return;
- S.fast=!S.fast;
- snd('snd-alarm');
- // bewaar verstreken fractie om timer NIET te resetten
- const elapsed=performance.now()-camSwitchStart;
- const oldInterval=S.fast?SW_NORMAL:SW_FAST;
- const newInterval=S.fast?SW_FAST:SW_NORMAL;
- const fraction=Math.min(1,elapsed/oldInterval);
- if(camSwitchTimer)clearInterval(camSwitchTimer);
- cancelAnimationFrame(progressRaf);
- // start cycle met gecorrigeerde starttijd zodat voortgang behouden blijft
- camSwitchStart=performance.now()-fraction*newInterval;
- camSwitchTimer=setInterval(()=>{
-  if(S.over||!S.cam)return;
-  S.activeCam=(S.activeCam+1)%CAMS.length;
-  camSwitchStart=performance.now();
-  snd('snd-switch');
-  if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
-  S.showSecret=(Math.random()<0.001);
-  draw();
- },newInterval);
+// Draait de wisselcyclus vanaf de bewaarde voortgang (camFrac) en plant de volgende wissel.
+function runCamCycle(){
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ const interval=camInterval();
+ camSwitchStart=performance.now()-camFrac*interval;
+ camSwitchTimer=setTimeout(onCamSwitch,(1-camFrac)*interval);
  startProgressBar();
 }
 
+// Bewaart de huidige voortgang en stopt de timer
+function pauseCamCycle(){
+ const interval=camInterval();
+ camFrac=Math.max(0,Math.min(1,(performance.now()-camSwitchStart)/interval));
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ camSwitchTimer=null;
+ cancelAnimationFrame(progressRaf);
+}
+
+function onCamSwitch(){
+ if(S.over||!S.cam)return;
+ S.activeCam=(S.activeCam+1)%CAMS.length;
+ camFrac=0;
+ snd('snd-switch');
+ if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
+ S.showSecret=(Math.random()<0.001);
+ draw();
+ runCamCycle();
+}
+
+function toggleSpeed(){
+ if(S.over||!S.cam||S.powerOut)return;
+ // voortgang vastleggen met het OUDE interval, daarna wisselen en doorgaan met het nieuwe
+ pauseCamCycle();
+ S.fast=!S.fast;
+ snd('snd-alarm');
+ runCamCycle();
+ draw();
+}
+
 function tcam(){
- if(S.over||S.door)return;
+ if(S.over||S.door||S.powerOut)return;
  S.cam=!S.cam;
  $('cam').classList.toggle('on',S.cam);
  if(S.cam){
   snd('snd-camopen');
-  // start cycle ZONDER huidige camera te resetten
-  if(camSwitchTimer)clearInterval(camSwitchTimer);
-  cancelAnimationFrame(progressRaf);
-  camSwitchStart=performance.now();
-  const interval=S.fast?SW_FAST:SW_NORMAL;
-  camSwitchTimer=setInterval(()=>{
-   if(S.over||!S.cam)return;
-   S.activeCam=(S.activeCam+1)%CAMS.length;
-   camSwitchStart=performance.now();
-   snd('snd-switch');
-   if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
-   S.showSecret=(Math.random()<0.001);
-   draw();
-  },interval);
-  startProgressBar();
+  // hervat vanaf de bewaarde voortgang (niet vanaf 0)
+  runCamCycle();
+  $('cam-progress').style.width=(camFrac*100)+'%';
  } else {
-  if(camSwitchTimer)clearInterval(camSwitchTimer);
-  cancelAnimationFrame(progressRaf);
-  $('cam-progress').style.width='0%';
+  pauseCamCycle();
+  $('cam-progress').style.width=(camFrac*100)+'%';
  }
  updateStressUI();
  draw();
 }
 
 function toggleDoorUI(){
- if(S.over)return;
+ if(S.over||S.powerOut)return;
  if(!S.door&&S.cam){tcam();}
  S.door=!S.door;
  if(S.door)snd('snd-camopen');
@@ -648,7 +709,7 @@ function stopRepair(){
 
 /* ---- Deuren ---- */
 function toggleDoor(i){
- if(S.over)return;
+ if(S.over||S.powerOut)return;
  S.d[i]=S.d[i]?0:1;
  snd(S.d[i]?'snd-dclose':'snd-dopen');
  if(S.attackPhase==='atdoor'&&S.attackDoor===i&&S.d[i]===1){
@@ -695,12 +756,35 @@ function draw(){
 }
 
 /* ---- Game loop ---- */
+function setBarDisabled(dis){
+ $('bar').querySelectorAll('button').forEach(b=>{b.disabled=dis;});
+}
+
+function powerFailure(){
+ S.powerOut=true;S.p=0;
+ if(S.cam)pauseCamCycle();
+ S.cam=false;S.door=false;S.d=[0,0];
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('cam-progress').style.width='0%';
+ stopRepair();
+ setBarDisabled(true);
+ stopAmbience();
+ stopStressSounds();
+ snd('snd-power');
+ draw();
+}
+
 function loop(){
  if(S.over)return;
  S.tick++;
- const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
- S.p-=(basePower+camPower+doorPower);
- if(S.p<=0){S.p=0;S.d=[0,0];S.cam=false;$('cam').classList.remove('on');return die();}
+ if(!S.powerOut){
+  const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
+  S.p-=(basePower+camPower+doorPower);
+  if(S.p<=0)powerFailure();
+ }
+ checkFearDeath();
+ if(S.over)return;
  if(S.tick%45===0){
   S.h++;
   if(S.h===5&&!played5AM){played5AM=true;stopAmbience();snd('snd-5am');}
@@ -739,29 +823,18 @@ function moveGijs(){
 /* ---- Einde ---- */
 function die(){
  S.over=true;stopAllAudio();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
  stopRepair();
  $('door-ui').classList.remove('on');
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
- const j=$('js'),v=$('jv');
- j.style.display='flex';
- const done=()=>{
-  if(j.style.display==='none')return;
-  j.style.display='none';
-  snd('snd-gameover');
-  $('gameover-img').src='Images/GameOver.png';
-  $('gameover-screen').classList.add('on');
- };
- v.onended=done;v.onerror=()=>setTimeout(done,1500);
- v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
- setTimeout(done,15000);
+ playJumpscare('Images/GameOver.png');
 }
 
 function win(){
  S.over=true;stopAllAudio();
- clearInterval(S.iv);if(camSwitchTimer)clearInterval(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();
  $('bar').style.display='none';
  $('cam').classList.remove('on');
