@@ -166,6 +166,8 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-gameover" src="Audio/GameOver.mp3" preload="auto"></audio>
 <audio id="snd-6am" src="Audio/6AM.mp3" preload="auto"></audio>
 <audio id="snd-power" src="Audio/Power.mp3" preload="auto"></audio>
+<audio id="snd-oom-cue" src="Audio/GijsOomCue.mp3" preload="auto"></audio>
+<audio id="snd-oom-warning" src="Audio/GijsOomWarning.mp3" preload="auto"></audio>
 
 <!-- Waarschuwingsscherm -->
 <div id="warning-screen">
@@ -184,7 +186,10 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  <h1>geGIJSeld</h1>
  <p style="color:#aaa">Je zit gevangen in een nachtmerrie.<br>Overleef tot 6 uur 's ochtends in je slaapkamer tegen Meester Gijs.</p>
  <p style="color:#555;font-size:14px">In de wereld van de gijzeler gelden andere regels. Gebruik de weinige informatie die je hebt om zijn locatie te traceren. Stroom is beperkt. Je kunt niet voor altijd achter je verdedigingen schuilen.</p>
- <button onclick="showNightIntro()">START NACHT</button>
+ <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+  <button onclick="selectNight(1)">NACHT 1</button>
+  <button onclick="selectNight(2)" id="night2-btn">NACHT 2</button>
+ </div>
 </div>
 
 <div class="sc" id="end" style="display:none">
@@ -213,6 +218,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <div id="cd">CAM 1</div>
   <div id="crec">● REC</div>
   <img id="ec" src="Images/GijsF1.png">
+  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none">
   <!-- Storing overlay -->
   <div id="static-overlay">
    <div id="static-text">⚠ GEEN SIGNAAL</div>
@@ -256,6 +262,9 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <div id="js">
  <video id="jv" src="Videos/GijsJumpscare.mp4" playsinline preload="auto"></video>
+</div>
+<div id="js2" style="position:fixed;inset:0;z-index:60;background:#000;display:none;align-items:center;justify-content:center">
+ <video id="jv2" src="Videos/GijsOomJumpscare.mp4" playsinline preload="auto" style="width:100vw;height:100vh;object-fit:cover"></video>
 </div>
 
 <!-- Gameover scherm -->
@@ -372,11 +381,18 @@ function goToMenu(){
  playMenuAudio();
 }
 
-function showNightIntro(){
+let currentNight=1;
+
+function selectNight(n){
+ currentNight=n;
  stopAllAudio();
  $('menu').style.display=$('end').style.display='none';
+ const bg=$('night-intro-bg');
+ bg.style.backgroundImage=n===2?`url('Images/Night2Introduction.png')`:`url('Images/Night1Introduction.png')`;
  $('night-intro').classList.add('on');
 }
+
+function showNightIntro(){selectNight(currentNight);}
 
 function beginNight(){
  $('night-intro').classList.remove('on');
@@ -407,6 +423,7 @@ function actualStart(){
   hasFault:false,faultNotified:false,showSecret:false
  };
  $('js').style.display='none';
+ $('js2').style.display='none';
  $('gameover-screen').classList.remove('on');
  $('alarm-screen').classList.remove('on');
  $('cam').classList.remove('on');
@@ -414,13 +431,16 @@ function actualStart(){
  $('static-overlay').classList.remove('on');
  $('repair-btn').classList.remove('visible');
  $('eyes-closed').classList.remove('on');
+ $('ec-oom').style.display='none';
  eyesHeld=false;shiftDown=false;
+ resetOom();
  playAmbience();
  setupEyesBtn();
  draw();
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
  startStressLoop();
+ if(currentNight===2)scheduleOom();
 }
 
 /* ---- Stress ---- */
@@ -632,9 +652,11 @@ function pauseCamCycle(){
 
 function onCamSwitch(){
  if(S.over||!S.cam)return;
+ const prevCam=S.activeCam;
  S.activeCam=(S.activeCam+1)%CAMS.length;
  camFrac=0;
  snd('snd-switch');
+ if(currentNight===2&&oomVisible&&prevCam===oomCam)handleOomCamLeave();
  if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
  S.showSecret=(Math.random()<0.001);
  draw();
@@ -739,8 +761,9 @@ function draw(){
  $('cam-name').textContent=cam.n;
  $('cs').style.backgroundImage=S.showSecret?`url('Camera/CameraSecret.png')`:`url('${cam.bg}')`;
 
- const showGijs=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+ const showGijs=(currentNight===1&&S.gijsPos===S.activeCam&&S.attackPhase==='idle');
  $('ec').style.display=showGijs?'block':'none';
+ if(currentNight===2)drawOom();
 
  const so=$('static-overlay');
  if(S.hasFault){so.classList.add('on');$('repair-btn').classList.add('visible');}
@@ -753,6 +776,106 @@ function draw(){
  $('dr-st').textContent=S.d[1]?'DICHT':'OPEN';
 
  updateStressUI();
+}
+
+/* ---- GijsOom (Nacht 2) ---- */
+let oomCam=-1;        // welke camera hij op staat (-1=afwezig)
+let oomTimer=null;    // timeout voor volgende verschijning
+let oomHideTimer=null;// timeout om hem te verbergen
+let oomStage=0;       // 0=weg, 1=F1, 2=F2, 3=F3
+let oomVisible=false;
+
+const OOM_IMGS=['Images/GijsOomF1.png','Images/GijsOomF2.png','Images/GijsOomF3.png'];
+
+function resetOom(){
+ if(oomTimer)clearTimeout(oomTimer);
+ if(oomHideTimer)clearTimeout(oomHideTimer);
+ oomTimer=oomHideTimer=null;
+ oomCam=-1;oomStage=0;oomVisible=false;
+ $('ec-oom').style.display='none';
+}
+
+function scheduleOom(){
+ if(S.over)return;
+ const delay=(Math.floor(Math.random()*16)+5)*1000; // 5–20 sec
+ oomTimer=setTimeout(showOom,delay);
+}
+
+function showOom(){
+ if(S.over)return;
+ oomCam=Math.floor(Math.random()*CAMS.length);
+ oomVisible=true;
+ // speel geluid
+ const a=$('snd-oom-cue');a.currentTime=0;a.play().catch(()=>{});
+ drawOom();
+ oomHideTimer=setTimeout(hideOom,12000);
+}
+
+function hideOom(){
+ if(S.over)return;
+ oomCam=-1;oomVisible=false;
+ $('ec-oom').style.display='none';
+ scheduleOom(); // 8 sec verbergen, dan 5-20 sec wachten = scheduleOom plant nieuwe vertraging
+ // Maar we willen exact 8s verborgen, daarna pas de 5-20s opnieuw
+ if(oomTimer)clearTimeout(oomTimer);
+ oomTimer=setTimeout(()=>{scheduleOom();},8000);
+}
+
+function drawOom(){
+ if(!oomVisible||oomCam<0||S.activeCam!==oomCam){
+  $('ec-oom').style.display='none';return;
+ }
+ const img=$('ec-oom');
+ img.src=OOM_IMGS[Math.min(oomStage,2)];
+ img.style.display='block';
+}
+
+// Wordt aangeroepen bij elke camera-wissel in nacht 2
+function onCamSwitchOom(){
+ if(!oomVisible||oomCam<0)return;
+ // Controleer of de vorige activeCam de oom-cam was
+ if(S.activeCam===oomCam){
+  // camera verlaat oom-cam: waarschuwing
+  handleOomCamLeave();
+ }
+}
+
+function handleOomCamLeave(){
+ if(S.over)return;
+ const a=$('snd-oom-warning');a.currentTime=0;a.play().catch(()=>{});
+ S.stress=Math.min(STRESS_MAX,(S.stress||0)+20);
+ updateStressDisplay();
+ oomStage++;
+ if(oomStage>=3){
+  // Game over via GijsOom jumpscare
+  oomVisible=false;
+  if(oomTimer)clearTimeout(oomTimer);
+  if(oomHideTimer)clearTimeout(oomHideTimer);
+  S.over=true;stopAllAudio();
+  clearInterval(S.iv);
+  if(camSwitchTimer)clearTimeout(camSwitchTimer);
+  cancelAnimationFrame(progressRaf);
+  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+  stopRepair();
+  $('door-ui').classList.remove('on');
+  $('stress-meter').classList.remove('visible');
+  $('eyes-btn').classList.remove('visible','active');
+  // Speel GijsOom jumpscare
+  const j=$('js2'),v=$('jv2');
+  $('eyes-closed').classList.remove('on');
+  j.style.display='flex';
+  const done=()=>{
+   if(j.style.display==='none')return;
+   j.style.display='none';
+   snd('snd-gameover');
+   $('gameover-img').src='Images/GameOver.png';
+   $('gameover-screen').classList.add('on');
+  };
+  v.onended=done;v.onerror=()=>setTimeout(done,1500);
+  boostJumpscareVolume(v);
+  v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+  setTimeout(done,15000);
+ }
 }
 
 /* ---- Game loop ---- */
@@ -790,6 +913,7 @@ function loop(){
   if(S.h===5&&!played5AM){played5AM=true;stopAmbience();snd('snd-5am');}
  }
  if(S.h>=6)return win();
+ if(currentNight===1){
  S.gijsTimer--;
  if(S.attackPhase==='atdoor'){
   S.attackCountdown--;
@@ -802,6 +926,7 @@ function loop(){
   }
  }
  if(S.gijsTimer<=0){S.gijsTimer=getGijsDelayForPhase();moveGijs();}
+ } // einde currentNight===1
  draw();
 }
 
@@ -825,7 +950,7 @@ function die(){
  S.over=true;stopAllAudio();
  clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
- stopRepair();
+ stopRepair();resetOom();
  $('door-ui').classList.remove('on');
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
@@ -835,7 +960,7 @@ function die(){
 function win(){
  S.over=true;stopAllAudio();
  clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
- cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();resetOom();
  $('bar').style.display='none';
  $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
@@ -867,6 +992,14 @@ const DIALOGUE=[
  'Nooit meer zal ontwaken.',
  'NOOIT MEER ZAL ONTWAKEN!!!'
 ];
+const DIALOGUE_N2=[
+ 'De auto is gevonden.',
+ 'Meester Gijs was niet de enige passagier.',
+ 'Na het ongeluk is de auto in de fik gevlogen.',
+ 'Al de passagiers zijn volledig verbrand.',
+ 'Ze laten je hier niet mee weg komen.',
+ 'Dit is jouw fout.'
+];
 let dialogueIdx=0;
 
 function startDialogue(){
@@ -876,14 +1009,15 @@ function startDialogue(){
  showDialogueLine();
 }
 
+function getDialogue(){return currentNight===2?DIALOGUE_N2:DIALOGUE;}
+
 function showDialogueLine(){
+ const d=getDialogue();
  const txt=$('dialogue-text');
- const line=DIALOGUE[dialogueIdx];
- txt.textContent=line;
- // Laatste zin: verberg Volgende knop na korte delay
+ txt.textContent=d[dialogueIdx];
  const btn=$('dialogue-next');
  btn.style.display='block';
- if(dialogueIdx===DIALOGUE.length-1){
+ if(dialogueIdx===d.length-1){
   btn.style.display='none';
   setTimeout(()=>{
    $('dialogue-screen').classList.remove('on');
@@ -898,7 +1032,8 @@ function showDialogueLine(){
 function nextDialogue(){
  snd('snd-camopen');
  dialogueIdx++;
- if(dialogueIdx<DIALOGUE.length){
+ const d=getDialogue();
+ if(dialogueIdx<d.length){
   showDialogueLine();
  } else {
   $('dialogue-screen').classList.remove('on');
