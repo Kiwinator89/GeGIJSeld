@@ -143,7 +143,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #alarm-msg{font-size:22px;color:#fa0;letter-spacing:4px;margin-top:20px;text-shadow:0 0 12px #fa0}
 #alarm-sub{font-size:13px;color:#555;letter-spacing:3px;margin-top:30px}
 @keyframes alarmglow{0%{box-shadow:0 0 20px #fa0,0 0 40px #fa04}100%{box-shadow:0 0 40px #fa0,0 0 80px #fa08}}
-@keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg)}100%{transform:translate(-50%,-100%) rotate(360deg)}}
+@keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg);transform-origin:bottom center}100%{transform:translate(-50%,-100%) rotate(360deg);transform-origin:bottom center}}
 </style>
 </head>
 <body>
@@ -842,13 +842,17 @@ function win(){
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
  snd('snd-6am');
- $('alarm-screen').classList.add('on');
- setTimeout(()=>{
-  $('alarm-screen').onclick=()=>{
-   $('alarm-screen').classList.remove('on');
-   startDialogue();
-  };
- },2000);
+ const as=$('alarm-screen');
+ as.onclick=null;
+ as.classList.add('on');
+ let alarmClickable=false;
+ setTimeout(()=>{alarmClickable=true;},2000);
+ as.onclick=()=>{
+  if(!alarmClickable)return;
+  as.onclick=null;
+  as.classList.remove('on');
+  startDialogue();
+ };
 }
 
 /* ---- Dialoog ---- */
@@ -899,6 +903,7 @@ function nextDialogue(){
  } else {
   $('dialogue-screen').classList.remove('on');
   stopAllAudio();
+  $('night-intro').classList.remove('on');
   $('menu').style.display='flex';
   playMenuAudio();
  }
