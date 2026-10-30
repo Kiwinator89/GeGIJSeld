@@ -168,6 +168,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-power" src="Audio/Power.mp3" preload="auto"></audio>
 <audio id="snd-oom-cue" src="Audio/GijsOomCue.mp3" preload="auto"></audio>
 <audio id="snd-oom-warning" src="Audio/GijsOomWarning.mp3" preload="auto"></audio>
+<audio id="snd-random" src="" preload="none"></audio>
 
 <!-- Waarschuwingsscherm -->
 <div id="warning-screen">
@@ -440,7 +441,25 @@ function actualStart(){
  if(S.iv)clearInterval(S.iv);
  S.iv=setInterval(loop,1000);
  startStressLoop();
+ startRandomAudioLoop();
  if(currentNight===2)scheduleOom();
+}
+
+/* ---- Random Audio ---- */
+let randomAudioInterval=null;
+function startRandomAudioLoop(){
+ if(randomAudioInterval)clearInterval(randomAudioInterval);
+ randomAudioInterval=setInterval(()=>{
+  if(!S||S.over)return;
+  const stress=S.stress||0;
+  const chance=(0.1+stress*0.1)/100;
+  if(Math.random()<chance){
+   const n=Math.floor(Math.random()*15)+1;
+   const a=$('snd-random');
+   a.src='RandomAudio/RandomAudio'+n+'.mp3';
+   a.currentTime=0;a.play().catch(()=>{});
+  }
+ },5000);
 }
 
 /* ---- Stress ---- */
@@ -601,7 +620,7 @@ function fearDeath(){
  if(S.over)return;
  S.over=true;eyesHeld=false;
  stopAllAudio();
- clearInterval(S.iv);
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
  if(camSwitchTimer)clearTimeout(camSwitchTimer);
  cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);
@@ -761,7 +780,7 @@ function draw(){
  $('cam-name').textContent=cam.n;
  $('cs').style.backgroundImage=S.showSecret?`url('Camera/CameraSecret.png')`:`url('${cam.bg}')`;
 
- const showGijs=(currentNight===1&&S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+ const showGijs=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
  $('ec').style.display=showGijs?'block':'none';
  if(currentNight===2)drawOom();
 
@@ -913,7 +932,6 @@ function loop(){
   if(S.h===5&&!played5AM){played5AM=true;stopAmbience();snd('snd-5am');}
  }
  if(S.h>=6)return win();
- if(currentNight===1){
  S.gijsTimer--;
  if(S.attackPhase==='atdoor'){
   S.attackCountdown--;
@@ -926,7 +944,6 @@ function loop(){
   }
  }
  if(S.gijsTimer<=0){S.gijsTimer=getGijsDelayForPhase();moveGijs();}
- } // einde currentNight===1
  draw();
 }
 
@@ -948,7 +965,8 @@ function moveGijs(){
 /* ---- Einde ---- */
 function die(){
  S.over=true;stopAllAudio();
- clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
  stopRepair();resetOom();
  $('door-ui').classList.remove('on');
@@ -959,7 +977,8 @@ function die(){
 
 function win(){
  S.over=true;stopAllAudio();
- clearInterval(S.iv);if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();resetOom();
  $('bar').style.display='none';
  $('cam').classList.remove('on');
