@@ -370,7 +370,7 @@ let shiftDown=false;
 const AGGR={
  gijs:{delayMul:{1:1,2:0.93,3:0.86},window:{1:12,2:12,3:11}}, // lager delayMul = vaker bewegen
  oom:{gapMul:{2:1,3:0.85}},                                    // lager gapMul = verschijnt vaker
- tom:{chance:{3:0.10}}                                         // kans per 5 sec om te bewegen
+ tom:{chance:{3:0.30}}                                         // kans per 12 sec om te bewegen
 };
 const POWER_SCALE=0.75; // nacht duurt 6 min i.p.v. 4,5 min: stroomverbruik geschaald zodat de balans gelijk blijft
 function gijsMul(){return AGGR.gijs.delayMul[currentNight]||1;}
@@ -487,6 +487,7 @@ function startRandomAudioLoop(){
 function resetStress(){
  S.stress=0;
  stressPhase=0;
+ $('ec').src='Images/GijsF1.png';
  f5StartTime=0;
  stopStressSounds();
  cancelAnimationFrame(stressRaf);
@@ -720,10 +721,12 @@ function tcam(){
  if(S.cam){
   snd('snd-camopen');
   // hervat vanaf de bewaarde voortgang (niet vanaf 0)
+  camFrac=Math.min(camFrac,0.85); // max 85% bij heropenen: speler houdt reactietijd
   runCamCycle();
   $('cam-progress').style.width=(camFrac*100)+'%';
  } else {
   pauseCamCycle();
+  camFrac=Math.min(camFrac,0.85);
   $('cam-progress').style.width=(camFrac*100)+'%';
  }
  updateStressUI();
@@ -994,11 +997,13 @@ function tomTick(){
  if(S.tomPhase==='atdoor'){
   S.tomCountdown--;
   if(S.tomCountdown<=0){
-   if(S.d[S.tomDoor]===0)return tomDie();
-   tomRepel();
+   const door=S.tomDoor;
+   if(!S.d[door])return tomDie();   // deur open -> jumpscare
+   tomRepel();                      // deur dicht -> Tom gaat weg
+   return;
   }
  }
- if(S.tick%5===0&&Math.random()<(AGGR.tom.chance[currentNight]||0))moveTom();
+ if(S.tick%12===0&&Math.random()<(AGGR.tom.chance[currentNight]||0))moveTom();
 }
 
 function moveTom(){
@@ -1027,11 +1032,17 @@ function tomRepel(){
 }
 
 // Tom is onzichtbaar op de camera's: je hoort hem alleen (loop) als je kijkt naar de camera waar hij zit
+const TOM_VOLUME=0.5; // 50% zachter dan origineel (1.0)
 function updateTomAudio(){
  const a=$('snd-tom');if(!a)return;
- const should=currentNight>=3&&S&&!S.over&&S.cam&&S.tomPhase==='idle'&&S.tomPos===S.activeCam;
- if(should){a.loop=true;if(a.paused)a.play().catch(()=>{});}
- else if(!a.paused){a.pause();a.currentTime=0;}
+ const alive=currentNight>=3&&S&&!S.over&&S.tomPhase==='idle';
+ if(alive){
+  // Speelt continu door; alleen hoorbaar als de speler naar Toms camera kijkt
+  const watching=S.cam&&S.tomPos===S.activeCam;
+  a.loop=true;
+  a.volume=watching?TOM_VOLUME:0;
+  if(a.paused)a.play().catch(()=>{});
+ } else if(!a.paused){a.pause();a.currentTime=0;}
 }
 
 function tomDie(){
