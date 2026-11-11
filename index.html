@@ -9,6 +9,8 @@
 body{margin:0;background:#000;color:#ccc;font-family:'Courier New',monospace;overflow:hidden;height:100vh}
 #g{position:relative;width:100vw;height:100vh;background:radial-gradient(ellipse at center,#1a0a2a,#05000a 75%);overflow:hidden}
 #g::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,#000 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 2px,transparent 2px 4px);animation:fl 3s infinite}
+#menu-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.35);z-index:0;pointer-events:none}
+#menu>*:not(#menu-bg){position:relative;z-index:1}
 @keyframes fl{0%,90%,100%{opacity:1}92%{opacity:.6}95%{opacity:.85}}
 .sc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:5;background:#05000a}
 h1{font-size:min(12vw,90px);margin:0;color:#e22;text-shadow:0 0 20px #f00,3px 3px #000;letter-spacing:4px}
@@ -188,6 +190,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 </div>
 
 <div class="sc" id="menu">
+ <video id="menu-bg" src="Background.mp4" autoplay muted loop playsinline preload="auto"></video>
  <h1>geGIJSeld</h1>
  <p style="color:#aaa">Je zit gevangen in een nachtmerrie.<br>Overleef tot 6 uur 's ochtends in je slaapkamer tegen Meester Gijs.</p>
  <p style="color:#555;font-size:14px">In de wereld van de gijzeler gelden andere regels. Gebruik de weinige informatie die je hebt om zijn locatie te traceren. Stroom is beperkt. Je kunt niet voor altijd achter je verdedigingen schuilen.</p>
@@ -387,7 +390,18 @@ function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
 function stopAllAudio(){
  document.querySelectorAll('audio').forEach(a=>{try{a.pause();a.currentTime=0;}catch(e){}});
 }
+(function(){
+ const v=document.getElementById('menu-bg');if(!v)return;
+ v.muted=true;v.defaultPlaybackRate=0.4;v.playbackRate=0.4;
+ ['loadedmetadata','play','playing'].forEach(e=>v.addEventListener(e,()=>{v.playbackRate=0.4;}));
+})();
+function playMenuVideo(){
+ const v=$('menu-bg');if(!v)return;
+ v.muted=true;v.defaultPlaybackRate=0.4;v.playbackRate=0.4;
+ v.play().catch(()=>{});
+}
 function playMenuAudio(){
+ playMenuVideo();
  stopAllAudio();
  const a=$('snd-menu');if(!a)return;a.currentTime=0;a.play().catch(()=>{});
 }
