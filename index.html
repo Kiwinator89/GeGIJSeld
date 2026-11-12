@@ -54,8 +54,8 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #repair-btn:hover{background:#2a1500}
 #repair-progress{position:absolute;bottom:0;left:0;height:3px;background:#f80;width:0%;transition:none;box-shadow:0 0 8px #f80}
 
-/* Gijs onderaan camera */
-#ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none}
+/* Gijs onderaan camera — twee figuren naast elkaar */
+#ec{position:absolute;bottom:0;left:20%;transform:translateX(-50%);height:75%;width:auto;max-width:40%;object-fit:contain;z-index:1;display:none}
 
 /* Voortgangsbalk camera-wissel */
 #cam-progress-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1);z-index:4}
@@ -146,7 +146,48 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #alarm-sub{font-size:13px;color:#555;letter-spacing:3px;margin-top:30px}
 @keyframes alarmglow{0%{box-shadow:0 0 20px #fa0,0 0 40px #fa04}100%{box-shadow:0 0 40px #fa0,0 0 80px #fa08}}
 @keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg);transform-origin:bottom center}100%{transform:translate(-50%,-100%) rotate(360deg);transform-origin:bottom center}}
-</style>
+
+/* Arcade HUD */
+#arcade-hud{position:absolute;top:10px;right:14px;z-index:4;display:none;flex-direction:column;align-items:flex-end;gap:2px}
+#arcade-hud.visible{display:flex}
+#arcade-score-label{font-size:11px;color:#fa0;letter-spacing:2px;text-shadow:0 0 6px #fa0}
+#arcade-score-val{font-size:26px;color:#fff;letter-spacing:2px;text-shadow:0 0 12px #fa08;font-weight:bold;transition:color .15s}
+#arcade-score-val.flash{color:#fa0}
+
+/* Score popup */
+.score-popup{position:fixed;font-family:'Courier New',monospace;font-size:20px;font-weight:bold;pointer-events:none;z-index:200;animation:scorepop .9s ease-out forwards;text-shadow:0 0 8px currentColor}
+@keyframes scorepop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+
+/* Modifier keuze scherm */
+#modifier-screen{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0a0015,#000);gap:18px;padding:20px}
+#modifier-screen.on{display:flex}
+#modifier-title{font-size:clamp(18px,4vw,34px);color:#fa0;letter-spacing:4px;text-shadow:0 0 20px #fa08;margin-bottom:4px}
+#modifier-sub{font-size:13px;color:#666;letter-spacing:3px;margin-top:-12px}
+.mod-section{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:700px}
+.mod-section-title{font-size:12px;color:#555;letter-spacing:3px;text-transform:uppercase;border-top:1px solid #222;padding-top:10px;width:100%;text-align:center}
+.mod-choices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.mod-btn{font-family:'Courier New',monospace;background:#0a0010;border:2px solid #444;color:#bbb;padding:12px 16px;font-size:13px;cursor:pointer;letter-spacing:1px;transition:.2s;max-width:220px;text-align:center;line-height:1.4}
+.mod-btn:hover{background:#1a0030;border-color:#a0a;color:#fff;box-shadow:0 0 14px #a0a4}
+.mod-btn.neg:hover{background:#200010;border-color:#f44;color:#fff;box-shadow:0 0 14px #f444}
+.mod-btn.neg{border-color:#622;color:#f88}
+.mod-btn.pos{border-color:#262;color:#8f8}
+.mod-btn.pos:hover{background:#002010;border-color:#4f4;color:#fff;box-shadow:0 0 14px #4f44}
+.mod-btn.selected{opacity:.4;pointer-events:none}
+#modifier-confirm{font-family:'Courier New',monospace;background:#0a0020;border:2px solid #666;color:#ccc;padding:14px 32px;font-size:16px;cursor:pointer;letter-spacing:3px;transition:.2s;display:none}
+#modifier-confirm:hover{background:#1a0040;border-color:#fa0;color:#fa0;box-shadow:0 0 20px #fa06}
+#modifier-confirm.ready{display:block}
+
+/* Punten scherm */
+#score-screen{position:fixed;inset:0;z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000;gap:0;overflow:hidden}
+#score-screen.on{display:flex}
+#score-title{font-size:clamp(28px,8vw,70px);color:#fa0;letter-spacing:6px;text-shadow:0 0 30px #fa08,0 0 60px #fa04;animation:gopulse 1.2s ease-in-out infinite;margin-bottom:10px}
+#score-table{width:min(500px,90vw);border-collapse:collapse;margin:10px 0}
+#score-table td{padding:5px 12px;font-size:16px;color:#ccc;letter-spacing:1px;border-bottom:1px solid #111}
+#score-table td:last-child{text-align:right;color:#fa0;min-width:70px}
+#score-total-row td{color:#fff;font-size:22px;border-top:2px solid #333;border-bottom:none;padding-top:12px}
+#score-total-row td:last-child{color:#fa0;text-shadow:0 0 12px #fa0}
+#score-buttons{display:flex;gap:14px;margin-top:18px}
+
 </head>
 <body>
 <div id="g">
@@ -199,6 +240,9 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <button onclick="selectNight(2)" id="night2-btn">NACHT 2</button>
   <button onclick="selectNight(3)" id="night3-btn">NACHT 3</button>
  </div>
+ <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+  <button onclick="toggleArcadeMode()" id="arcade-toggle-btn" style="border-color:#666;color:#888;font-size:14px;padding:8px 18px">🕹 ARCADE MODE: UIT</button>
+ </div>
 </div>
 
 <div class="sc" id="end" style="display:none">
@@ -227,7 +271,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <div id="cd">CAM 1</div>
   <div id="crec">● REC</div>
   <img id="ec" src="Images/GijsF1.png">
-  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none">
+  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:80%;transform:translateX(-50%);height:75%;width:auto;max-width:40%;object-fit:contain;z-index:1;display:none">
   <!-- Storing overlay -->
   <div id="static-overlay">
    <div id="static-text">⚠ GEEN SIGNAAL</div>
@@ -316,10 +360,321 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 
 <!-- Ogen dicht -->
 <div id="eyes-closed"></div>
+
+<!-- Arcade score HUD -->
+<div id="arcade-hud">
+ <div id="arcade-score-label">🏆 SCORE</div>
+ <div id="arcade-score-val">0</div>
+</div>
+
+<!-- Modifier keuze scherm -->
+<div id="modifier-screen">
+ <div id="modifier-title">NACHT VOLTOOID</div>
+ <div id="modifier-sub">KIES JE MODIFICATIES VOOR DE VOLGENDE NACHT</div>
+ <div class="mod-section">
+  <div class="mod-section-title">⚠ Kies 1 negatieve modifier</div>
+  <div class="mod-choices" id="neg-choices"></div>
+ </div>
+ <div class="mod-section">
+  <div class="mod-section-title">✦ Kies 1 positieve modifier</div>
+  <div class="mod-choices" id="pos-choices"></div>
+ </div>
+ <button id="modifier-confirm" onclick="confirmModifiers()">▶ START VOLGENDE NACHT</button>
+</div>
+
+<!-- Puntenscherm (game over) -->
+<div id="score-screen">
+ <div id="score-title">GAME OVER</div>
+ <table id="score-table"><tbody id="score-rows"></tbody></table>
+ <div id="score-buttons">
+  <button onclick="goToMenu()" style="font-family:inherit;background:#0a0;border:2px solid #0f0;color:#0f0;padding:12px 24px;font-size:15px;cursor:pointer;letter-spacing:2px">MENU</button>
+ </div>
+</div>
+
 </div>
 
 <script>
 function $(id){return document.getElementById(id)}
+
+/* ======== ARCADE MODE ======== */
+let arcadeMode=false;
+let arcadeScore=0;
+let arcadeModifiers={
+ // negatief actief
+ oomAggr:false,gijselerAggr:false,tomAggr:false,
+ fasterCam:false,fasterStress:false,fasterPower:false,
+ moreStatic:false,startLessPower:false,eyesLessStress:false,
+ camDrainsPower:false,
+ // positief actief
+ extraPointsPct:0,bonusPoints:0,camPointsMult:1,
+ stressSlower:0,doorLessPower:false,eyesLessPointsMoreStress:false
+};
+
+// Puntentelling (accumulator per categorie)
+let arcadeScoreBreakdown={
+ camSeconds:0,eyeSeconds:0,hoboAppear:0,gijsMove:0,tomMove:0,
+ gijsCam1:0,tomSurvive:0,oomPenalty:0,doorPenalty:0
+};
+
+let arcadeScoreInterval=null;
+let arcadeLastSecCam=false;
+let arcadeLastSecEyes=false;
+
+function toggleArcadeMode(){
+ arcadeMode=!arcadeMode;
+ const btn=$('arcade-toggle-btn');
+ btn.textContent='🕹 ARCADE MODE: '+(arcadeMode?'AAN':'UIT');
+ btn.style.borderColor=arcadeMode?'#fa0':'#666';
+ btn.style.color=arcadeMode?'#fa0':'#888';
+}
+
+function resetArcadeScore(){
+ arcadeScore=0;
+ arcadeScoreBreakdown={camSeconds:0,eyeSeconds:0,hoboAppear:0,gijsMove:0,tomMove:0,gijsCam1:0,tomSurvive:0,oomPenalty:0,doorPenalty:0};
+ updateArcadeHUD();
+}
+
+function updateArcadeHUD(){
+ if(!arcadeMode)return;
+ const el=$('arcade-score-val');
+ el.textContent=Math.max(0,arcadeScore).toLocaleString('nl-NL');
+ el.classList.add('flash');
+ setTimeout(()=>el.classList.remove('flash'),150);
+}
+
+function addScore(pts,label,x,y){
+ if(!arcadeMode)return;
+ // Pas positieve modifiers toe
+ let adjusted=pts;
+ if(pts>0){
+  if(arcadeModifiers.extraPointsPct>0)adjusted=Math.round(adjusted*(1+arcadeModifiers.extraPointsPct/100));
+ }
+ arcadeScore+=adjusted;
+ updateArcadeHUD();
+ // Pop-up tonen
+ const pop=document.createElement('div');
+ pop.className='score-popup';
+ pop.style.color=pts>0?'#fa0':'#f44';
+ pop.style.left=(x||window.innerWidth/2)+'px';
+ pop.style.top=(y||window.innerHeight/2-80)+'px';
+ pop.textContent=(pts>0?'+':'')+adjusted;
+ document.getElementById('g').appendChild(pop);
+ setTimeout(()=>pop.remove(),900);
+}
+
+function startArcadeLoop(){
+ if(arcadeScoreInterval)clearInterval(arcadeScoreInterval);
+ if(!arcadeMode)return;
+ $('arcade-hud').classList.add('visible');
+ arcadeScoreInterval=setInterval(()=>{
+  if(!S||S.over)return;
+  // Camera kijken: +10/sec (of met mult)
+  if(S.cam&&!S.hasFault){
+   const pts=Math.round(10*arcadeModifiers.camPointsMult);
+   arcadeScoreBreakdown.camSeconds+=pts;
+   addScore(pts,'cam',window.innerWidth-80,60);
+  }
+  // Ogen dicht: +20/sec (of minder als eyesLessPoints)
+  if(eyesHeld){
+   const pts=arcadeModifiers.eyesLessPointsMoreStress?10:20;
+   arcadeScoreBreakdown.eyeSeconds+=pts;
+   addScore(pts,'eyes',window.innerWidth/2,window.innerHeight/2-40);
+  }
+  // Deur dicht: -5/sec per gesloten deur
+  const doorsDown=(S.d[0]+S.d[1])*-5;
+  if(doorsDown<0){
+   arcadeScoreBreakdown.doorPenalty+=doorsDown;
+   addScore(doorsDown,'door',window.innerWidth/2-60,window.innerHeight-100);
+  }
+ },1000);
+}
+
+function stopArcadeLoop(){
+ if(arcadeScoreInterval)clearInterval(arcadeScoreInterval);
+ arcadeScoreInterval=null;
+ $('arcade-hud').classList.remove('visible');
+}
+
+// Wordt aangeroepen vanuit moveGijs
+function arcadeOnGijsMove(newPos){
+ if(!arcadeMode)return;
+ arcadeScoreBreakdown.gijsMove+=25;
+ addScore(25,'gijsmove',window.innerWidth/2,window.innerHeight*0.4);
+ if(newPos===0){// terugkeer naar cam1
+  arcadeScoreBreakdown.gijsCam1+=100;
+  addScore(100,'cam1',window.innerWidth/2,window.innerHeight*0.35);
+ }
+}
+
+function arcadeOnTomMove(){
+ if(!arcadeMode)return;
+ arcadeScoreBreakdown.tomMove+=30;
+ addScore(30,'tommove',window.innerWidth*0.3,window.innerHeight*0.4);
+}
+
+function arcadeOnHoboAppear(){
+ if(!arcadeMode)return;
+ arcadeScoreBreakdown.hoboAppear+=50;
+ addScore(50,'hobo',window.innerWidth*0.6,window.innerHeight*0.3);
+}
+
+function arcadeOnOomPenalty(){
+ if(!arcadeMode)return;
+ arcadeScoreBreakdown.oomPenalty-=50;
+ addScore(-50,'oom',window.innerWidth/2,window.innerHeight*0.3);
+}
+
+function arcadeOnTomSurvive(){
+ if(!arcadeMode)return;
+ arcadeScoreBreakdown.tomSurvive+=200;
+ addScore(200,'tomsurvive',window.innerWidth/2,window.innerHeight*0.3);
+}
+
+/* ---- Bonuspunten na nacht ---- */
+function applyBonusPoints(){
+ if(!arcadeMode)return;
+ if(arcadeModifiers.bonusPoints>0){
+  arcadeScore+=arcadeModifiers.bonusPoints;
+  updateArcadeHUD();
+ }
+}
+
+/* ---- Modifier definities ---- */
+const NEG_MODS=[
+ {id:'oomAggr',label:'Oom Gijs wordt agressiever',desc:'Verschijnt vaker en sneller'},
+ {id:'gijselerAggr',label:'GIJSeler wordt agressiever',desc:'Beweegt vaker richting jou'},
+ {id:'tomAggr',label:'Tumor Tom wordt agressiever',desc:'Grotere kans per cyclus'},
+ {id:'fasterCam',label:'Camera switch 25% sneller',desc:'Minder tijd per camera'},
+ {id:'fasterStress',label:'Stress 25% sneller',desc:'Stress bouwt sneller op'},
+ {id:'fasterPower',label:'Stroom 5% sneller omlaag',desc:'Minder speling'},
+ {id:'moreStatic',label:'Camera storing 50% vaker',desc:'Meer reparaties nodig'},
+ {id:'startLessPower',label:'Start met 5% minder stroom',desc:'Minder reserves'},
+ {id:'eyesLessStress',label:'Ogen sluiten 20% minder effectief',desc:'Stress daalt langzamer'},
+ {id:'camDrainsPower',label:'Camera kost 1% stroom per 20 sec',desc:'Camera kijken kost nu extra stroom'}
+];
+const POS_MODS=[
+ {id:'extraPointsPct',val:40,label:'40% extra punten!',desc:'Alle punten worden verhoogd'},
+ {id:'bonusPoints',val:1000,label:'+1000 bonuspunten!',desc:'Directe bonus bij start volgende nacht'},
+ {id:'camPointsMult',val:3,label:'Camera geeft 200% meer punten/sec',desc:'Camera kijken = 30 p/sec'},
+ {id:'stressSlower',val:30,label:'Stress 30% langzamer',desc:'Rustiger op de camera'},
+ {id:'doorLessPower',val:true,label:'Deuren 20% minder stroom',desc:'Deuren sluiten is goedkoper'},
+ {id:'eyesLessPointsMoreStress',val:true,label:'Ogen: helft punten, stress -25% sneller',desc:'Strategische keuze'}
+];
+
+let negModsPicked=[];
+let posModsPicked=[];
+let negSelected=null;
+let posSelected=null;
+
+function pickRandom(arr,n){
+ const copy=[...arr];const out=[];
+ while(out.length<n&&copy.length>0){
+  const i=Math.floor(Math.random()*copy.length);
+  out.push(copy.splice(i,1)[0]);
+ }
+ return out;
+}
+
+function showModifierScreen(){
+ negModsPicked=pickRandom(NEG_MODS,3);
+ posModsPicked=pickRandom(POS_MODS,3);
+ negSelected=null;posSelected=null;
+
+ const nc=$('neg-choices');nc.innerHTML='';
+ negModsPicked.forEach(m=>{
+  const b=document.createElement('button');
+  b.className='mod-btn neg';b.dataset.id=m.id;
+  b.innerHTML=`<b>${m.label}</b><br><span style="font-size:11px;color:#888">${m.desc}</span>`;
+  b.onclick=()=>selectMod('neg',m.id,b);
+  nc.appendChild(b);
+ });
+
+ const pc=$('pos-choices');pc.innerHTML='';
+ posModsPicked.forEach(m=>{
+  const b=document.createElement('button');
+  b.className='mod-btn pos';b.dataset.id=m.id;
+  b.innerHTML=`<b>${m.label}</b><br><span style="font-size:11px;color:#888">${m.desc}</span>`;
+  b.onclick=()=>selectMod('pos',m.id,b);
+  pc.appendChild(b);
+ });
+
+ $('modifier-confirm').classList.remove('ready');
+ $('modifier-screen').classList.add('on');
+}
+
+function selectMod(type,id,btn){
+ if(type==='neg'){
+  negSelected=id;
+  $('neg-choices').querySelectorAll('.mod-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+ } else {
+  posSelected=id;
+  $('pos-choices').querySelectorAll('.mod-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+ }
+ if(negSelected&&posSelected)$('modifier-confirm').classList.add('ready');
+}
+
+function confirmModifiers(){
+ if(!negSelected||!posSelected)return;
+ // Pas neg modifier toe
+ NEG_MODS.forEach(m=>{if(m.id===negSelected)arcadeModifiers[m.id]=true;});
+ // Pas pos modifier toe
+ POS_MODS.forEach(m=>{if(m.id===posSelected){
+  if(m.id==='extraPointsPct')arcadeModifiers.extraPointsPct+=m.val;
+  else if(m.id==='bonusPoints')arcadeModifiers.bonusPoints+=m.val;
+  else if(m.id==='camPointsMult')arcadeModifiers.camPointsMult=m.val;
+  else arcadeModifiers[m.id]=m.val;
+ }});
+ $('modifier-screen').classList.remove('on');
+ // Bonuspunten toepassen
+ applyBonusPoints();
+ // Start volgende nacht
+ actualStart();
+}
+
+/* ---- Puntenscherm ---- */
+function showScoreScreen(){
+ const rows=[
+  ['Camera kijken',arcadeScoreBreakdown.camSeconds],
+  ['Ogen dicht',arcadeScoreBreakdown.eyeSeconds],
+  ['Hobo Gijs verschenen',arcadeScoreBreakdown.hoboAppear],
+  ['Gijs beweegt',arcadeScoreBreakdown.gijsMove],
+  ['Tom beweegt',arcadeScoreBreakdown.tomMove],
+  ['Gijs naar cam 1 overleefd',arcadeScoreBreakdown.gijsCam1],
+  ['Tom aanval overleefd',arcadeScoreBreakdown.tomSurvive],
+  ['OomGijs penalty',arcadeScoreBreakdown.oomPenalty],
+  ['Deur gesloten',arcadeScoreBreakdown.doorPenalty],
+ ].filter(r=>r[1]!==0);
+
+ const tbody=$('score-rows');tbody.innerHTML='';
+ let runningTotal=0;
+ rows.forEach(([label,pts])=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${label}</td><td>${pts>0?'+':''}${pts}</td>`;
+  tbody.appendChild(tr);
+ });
+ // Totaal rij
+ const tr=document.createElement('tr');
+ tr.id='score-total-row';
+ tr.innerHTML=`<td>TOTAAL</td><td id="score-total-num">0</td>`;
+ tbody.appendChild(tr);
+ $('score-screen').classList.add('on');
+ // Animate optelling
+ animateScoreCount(rows);
+}
+
+function animateScoreCount(rows){
+ const finalScore=Math.max(0,arcadeScore);
+ const duration=2500;const steps=60;const perStep=duration/steps;
+ let current=0;let step=0;
+ const int=setInterval(()=>{
+  step++;
+  current=Math.round(finalScore*(step/steps));
+  $('score-total-num').textContent=current.toLocaleString('nl-NL');
+  if(step>=steps){clearInterval(int);$('score-total-num').textContent=finalScore.toLocaleString('nl-NL');}
+ },perStep);
+}
 
 // Waarschuwingsscherm: pas na klik op de knop gaat het menu (en Menu.mp3) aan
 function dismissWarning(){
@@ -388,9 +743,11 @@ const POWER_SCALE=0.75; // nacht duurt 6 min i.p.v. 4,5 min: stroomverbruik gesc
 function gijsMul(){return AGGR.gijs.delayMul[currentNight]||1;}
 function gijsWindow(){return AGGR.gijs.window[currentNight]||12;}
 function getGijsDelayForPhase(){
- const base=(Math.floor(Math.random()*10)+16)*gijsMul();
+ let base=(Math.floor(Math.random()*10)+16)*gijsMul();
  const bonus=Math.min(stressPhase*2,10);
- return Math.max(4,Math.round(base-bonus));
+ let delay=Math.max(4,Math.round(base-bonus));
+ if(arcadeMode&&arcadeModifiers.gijselerAggr)delay=Math.max(3,Math.round(delay*0.75));
+ return delay;
 }
 
 function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
@@ -418,7 +775,12 @@ function goToMenu(){
  $('gameover-screen').classList.remove('on');
  $('dialogue-screen').classList.remove('on');
  $('alarm-screen').classList.remove('on');
+ $('score-screen').classList.remove('on');
+ $('modifier-screen').classList.remove('on');
  $('end').style.display='none';
+ // Reset arcade modifiers voor volgende sessie
+ arcadeModifiers={oomAggr:false,gijselerAggr:false,tomAggr:false,fasterCam:false,fasterStress:false,fasterPower:false,moreStatic:false,startLessPower:false,eyesLessStress:false,camDrainsPower:false,extraPointsPct:0,bonusPoints:0,camPointsMult:1,stressSlower:0,doorLessPower:false,eyesLessPointsMoreStress:false};
+ stopArcadeLoop();
  $('menu').style.display='flex';
  playMenuAudio();
 }
@@ -428,6 +790,8 @@ let currentNight=1;
 function selectNight(n){
  currentNight=n;
  stopAllAudio();
+ // Reset score bij nieuwe nacht vanuit menu
+ if(arcadeMode)resetArcadeScore();
  $('menu').style.display=$('end').style.display='none';
  const bg=$('night-intro-bg');
  bg.style.backgroundImage=`url('Images/Night${n}Introduction.png')`;
@@ -466,6 +830,10 @@ function actualStart(){
   over:false,powerOut:false,tick:0,
   hasFault:false,faultNotified:false,showSecret:false
  };
+ // Arcade mode
+ if(arcadeMode){
+  if(arcadeModifiers.startLessPower)S.p=95;
+ }
  $('js').style.display='none';
  $('js2').style.display='none';
  $('gameover-screen').classList.remove('on');
@@ -486,6 +854,7 @@ function actualStart(){
  S.iv=setInterval(loop,1000);
  startStressLoop();
  startRandomAudioLoop();
+ if(arcadeMode)startArcadeLoop();
  if(currentNight>=2)scheduleOom();
 }
 
@@ -533,7 +902,10 @@ function startStressLoop(){
   stressInterval=setInterval(()=>{
    if(!S||S.over)return;
    if(S.cam&&!S.door&&!eyesHeld){
-    S.stress=Math.min(STRESS_MAX,(S.stress||0)+STRESS_RATE_PER_SEC);
+    let rate=STRESS_RATE_PER_SEC;
+    if(arcadeMode&&arcadeModifiers.fasterStress)rate*=1.25;
+    if(arcadeMode&&arcadeModifiers.stressSlower)rate*=(1-arcadeModifiers.stressSlower/100);
+    S.stress=Math.min(STRESS_MAX,(S.stress||0)+rate);
     updateStressDisplay();
    }
   },1000);
@@ -545,7 +917,10 @@ function startStressDecay(){
   if(!S||S.over){cancelAnimationFrame(stressDecayRaf);return;}
   if(!eyesHeld){cancelAnimationFrame(stressDecayRaf);stressDecayRaf=null;return;}
   stressDecayRaf=requestAnimationFrame(tick);
-  S.stress=Math.max(0,S.stress-0.05);
+  let decayRate=0.05;
+  if(arcadeMode&&arcadeModifiers.eyesLessStress)decayRate*=0.8;
+  if(arcadeMode&&arcadeModifiers.eyesLessPointsMoreStress)decayRate*=1.25;
+  S.stress=Math.max(0,S.stress-decayRate);
   updateStressDisplay();
  }
  stressDecayRaf=requestAnimationFrame(tick);
@@ -670,18 +1045,22 @@ function fearDeath(){
  cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);
  cancelAnimationFrame(stressDecayRaf);
- stopRepair();
+ stopRepair();stopArcadeLoop();
  $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
  $('bar').style.display='none';
  $('tm').style.display='none';
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
- playJumpscare('Images/GameOverFear.png');
+ if(arcadeMode)playJumpscareWithScoreAfter('Images/GameOverFear.png');
+ else playJumpscare('Images/GameOverFear.png');
 }
 
 /* ---- Voortgangsbalk ---- */
-function camInterval(){return S.fast?SW_FAST:SW_NORMAL;}
+function camInterval(){
+ const base=S.fast?SW_FAST:SW_NORMAL;
+ return arcadeMode&&arcadeModifiers.fasterCam?Math.round(base*0.75):base;
+}
 
 function startProgressBar(){
  cancelAnimationFrame(progressRaf);
@@ -721,7 +1100,8 @@ function onCamSwitch(){
  camFrac=0;
  snd('snd-switch');
  if(currentNight>=2&&oomVisible&&prevCam===oomCam)handleOomCamLeave();
- if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
+ const faultChance=(arcadeMode&&arcadeModifiers.moreStatic)?0.075:0.05;
+ if(S.fast&&!S.hasFault&&Math.random()<faultChance){S.hasFault=true;S.faultNotified=true;}
  S.showSecret=(Math.random()<0.001);
  draw();
  runCamCycle();
@@ -868,16 +1248,18 @@ function oomMul(){return AGGR.oom.gapMul[currentNight]||1;}
 function scheduleOom(){
  if(S.over)return;
  if(oomTimer)clearTimeout(oomTimer);
- const delay=(2+Math.random()*5)*1000*oomMul(); // 2–7 sec (was 5–20 + 8 sec pauze)
+ let oomDelay=(2+Math.random()*5)*1000*oomMul();
+ if(arcadeMode&&arcadeModifiers.oomAggr)oomDelay*=0.6;
+ const delay=oomDelay; // 2–7 sec (was 5–20 + 8 sec pauze)
  oomTimer=setTimeout(showOom,delay);
 }
 
 function showOom(){
  if(S.over)return;
- // Als de speler op de camera's kijkt verschijnt hij vaak op een van de eerstvolgende camera's
  if(S.cam&&Math.random()<0.6)oomCam=(S.activeCam+1+Math.floor(Math.random()*2))%CAMS.length;
  else oomCam=Math.floor(Math.random()*CAMS.length);
  oomVisible=true;
+ arcadeOnHoboAppear();
  const a=$('snd-oom-cue');a.currentTime=0;a.play().catch(()=>{});
  drawOom();
  oomHideTimer=setTimeout(hideOom,12000);
@@ -911,6 +1293,7 @@ function onCamSwitchOom(){
 
 function handleOomCamLeave(){
  if(S.over)return;
+ arcadeOnOomPenalty();
  const a=$('snd-oom-warning');a.currentTime=0;a.play().catch(()=>{});
  S.stress=Math.min(STRESS_MAX,(S.stress||0)+20);
  updateStressDisplay();
@@ -940,6 +1323,7 @@ function handleOomCamLeave(){
    $('gameover-img').src='Images/GameOver.png';
    $('gameover-screen').classList.add('on');
   };
+  if(arcadeMode){done=()=>{if(j.style.display==='none')return;j.style.display='none';snd('snd-gameover');showScoreScreen();};}
   v.onended=done;v.onerror=()=>setTimeout(done,1500);
   boostJumpscareVolume(v);
   v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
@@ -971,7 +1355,12 @@ function loop(){
  if(S.over)return;
  S.tick++;
  if(!S.powerOut){
-  const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
+  const basePower=0.1*(arcadeMode&&arcadeModifiers.fasterPower?1.05:1);
+  const camPower=S.cam?0.2:0;
+  let doorCost=0.5;if(arcadeMode&&arcadeModifiers.doorLessPower)doorCost=0.4;
+  const doorPower=(S.d[0]+S.d[1])*doorCost;
+  // camDrainsPower: elke 20 sec op cam = -1% extra stroom
+  if(arcadeMode&&arcadeModifiers.camDrainsPower&&S.cam&&S.tick%20===0)S.p-=1;
   S.p-=(basePower+camPower+doorPower)*POWER_SCALE;
   if(S.p<=0)powerFailure();
  }
@@ -991,6 +1380,7 @@ function loop(){
    if(S.d[S.attackDoor]===0)return die();
    S.attackPhase='idle';S.attackDoor=-1;
    snd('snd-steps');
+   arcadeOnGijsMove(0); // terugkeer naar cam 1 = +100
    const delay=(Math.floor(Math.random()*6)+4)*1000;
    setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
   }
@@ -1002,10 +1392,12 @@ function loop(){
 
 function moveGijs(){
  if(S.attackPhase!=='idle')return;
+ const prevPos=S.gijsPos;
  if(S.gijsPos===0)S.gijsPos=1;
  else if(S.gijsPos===1)S.gijsPos=2;
  else if(S.gijsPos===2)S.gijsPos=Math.random()<.5?3:4;
- else if(S.gijsPos===3||S.gijsPos===4){
+ if(S.gijsPos!==prevPos)arcadeOnGijsMove(S.gijsPos);
+ if(S.gijsPos===3||S.gijsPos===4){
   const doorIdx=S.gijsPos===3?0:1;
   S.attackPhase='leaving';S.attackDoor=doorIdx;
   setTimeout(()=>{
@@ -1026,15 +1418,19 @@ function tomTick(){
    return;
   }
  }
- if(S.tick%12===0&&Math.random()<(AGGR.tom.chance[currentNight]||0))moveTom();
+ let tomChance=AGGR.tom.chance[currentNight]||0;
+ if(arcadeMode&&arcadeModifiers.tomAggr)tomChance=Math.min(0.6,tomChance*1.4);
+ if(S.tick%12===0&&Math.random()<tomChance)moveTom();
 }
 
 function moveTom(){
  if(S.tomPhase!=='idle')return;
+ const prevTomPos=S.tomPos;
  if(S.tomPos===0)S.tomPos=1;
  else if(S.tomPos===1)S.tomPos=2;
  else if(S.tomPos===2)S.tomPos=Math.random()<.5?3:4;
- else if(S.tomPos===3||S.tomPos===4){
+ if(S.tomPos!==prevTomPos&&S.tomPos<3)arcadeOnTomMove();
+ if(S.tomPos===3||S.tomPos===4){
   const s=S;
   s.tomPhase='leaving';s.tomDoor=s.tomPos===3?0:1;
   setTimeout(()=>{
@@ -1047,6 +1443,7 @@ function moveTom(){
 
 function tomRepel(){
  const s=S;
+ arcadeOnTomSurvive();
  snd('snd-steps');
  s.tomPhase='away';s.tomDoor=-1;s.tomCountdown=0;
  updateTomAudio();
@@ -1069,7 +1466,7 @@ function updateTomAudio(){
 }
 
 function tomDie(){
- S.over=true;stopAllAudio();
+ S.over=true;stopAllAudio();stopArcadeLoop();
  clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
  if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
@@ -1086,17 +1483,35 @@ function tomDie(){
   j.style.display='none';
   a.pause();
   snd('snd-gameover');
-  $('gameover-img').src='Images/GameOver.png';
-  $('gameover-screen').classList.add('on');
+  if(arcadeMode){showScoreScreen();}
+  else{$('gameover-img').src='Images/GameOver.png';$('gameover-screen').classList.add('on');}
  };
  a.onended=done;a.onerror=()=>setTimeout(done,2500);
  a.volume=1;a.currentTime=0;a.play().catch(()=>setTimeout(done,2500));
  setTimeout(done,15000);
 }
 
+/* ---- Score scherm helper ---- */
+function playJumpscareWithScoreAfter(img){
+ const j=$('js'),v=$('jv');
+ $('eyes-closed').classList.remove('on');
+ j.style.display='flex';
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  snd('snd-gameover');
+  // Toon score scherm ipv gameover
+  showScoreScreen();
+ };
+ v.onended=done;v.onerror=()=>setTimeout(done,1500);
+ boostJumpscareVolume(v);
+ v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+ setTimeout(done,15000);
+}
+
 /* ---- Einde ---- */
 function die(){
- S.over=true;stopAllAudio();
+ S.over=true;stopAllAudio();stopArcadeLoop();
  clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
  if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
@@ -1104,11 +1519,12 @@ function die(){
  $('door-ui').classList.remove('on');
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
- playJumpscare('Images/GameOver.png');
+ if(arcadeMode)playJumpscareWithScoreAfter('Images/GameOver.png');
+ else playJumpscare('Images/GameOver.png');
 }
 
 function win(){
- S.over=true;stopAllAudio();
+ S.over=true;stopAllAudio();stopArcadeLoop();
  clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
  if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();resetOom();
@@ -1127,7 +1543,11 @@ function win(){
   if(!alarmClickable)return;
   as.onclick=null;
   as.classList.remove('on');
-  startDialogue();
+  if(arcadeMode&&currentNight<3){
+   showModifierScreen();
+  } else {
+   startDialogue();
+  }
  };
 }
 
