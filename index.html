@@ -305,6 +305,15 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  </div>
 </div>
 
+<!-- The End scherm -->
+<div id="theend-screen" style="position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center">
+ <video id="theend-bg" src="Background.mp4" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(1)"></video>
+ <audio id="snd-theend" src="Audio/TheEnd.mp3" preload="auto"></audio>
+ <div style="position:relative;z-index:2;text-align:center">
+  <div id="theend-title" style="font-size:min(16vw,110px);color:#fff;text-shadow:0 0 40px #fff,0 0 80px #fff8;letter-spacing:8px;opacity:0;transition:opacity 3s ease">THE END</div>
+ </div>
+</div>
+
 <!-- Ogen dicht -->
 <div id="eyes-closed"></div>
 </div>
@@ -1175,9 +1184,19 @@ function showDialogueLine(){
   setTimeout(()=>{
    $('dialogue-screen').classList.remove('on');
    stopAllAudio();
-   $('menu').style.display='flex';
-   $('night-intro').classList.remove('on');
-   playMenuAudio();
+   if(currentNight===3){
+    const ts=$('theend-screen');
+    ts.style.display='flex';
+    const tbg=$('theend-bg');
+    tbg.muted=false;tbg.currentTime=0;tbg.play().catch(()=>{});
+    const te=$('snd-theend');
+    te.currentTime=0;te.play().catch(()=>{});
+    setTimeout(()=>{$('theend-title').style.opacity='1';},500);
+   } else {
+    $('menu').style.display='flex';
+    $('night-intro').classList.remove('on');
+    playMenuAudio();
+   }
   },3500);
  }
 }
@@ -1191,9 +1210,19 @@ function nextDialogue(){
  } else {
   $('dialogue-screen').classList.remove('on');
   stopAllAudio();
-  $('night-intro').classList.remove('on');
-  $('menu').style.display='flex';
-  playMenuAudio();
+  if(currentNight===3){
+   const ts=$('theend-screen');
+   ts.style.display='flex';
+   const tbg=$('theend-bg');
+   tbg.muted=false;tbg.currentTime=0;tbg.play().catch(()=>{});
+   const te=$('snd-theend');
+   te.currentTime=0;te.play().catch(()=>{});
+   setTimeout(()=>{$('theend-title').style.opacity='1';},500);
+  } else {
+   $('night-intro').classList.remove('on');
+   $('menu').style.display='flex';
+   playMenuAudio();
+  }
  }
 }
 
