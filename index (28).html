@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>geGIJSeld</title>
+<style>
+*{box-sizing:border-box;user-select:none}
+body{margin:0;background:#000;color:#ccc;font-family:'Courier New',monospace;overflow:hidden;height:100vh}
+#g{position:relative;width:100vw;height:100vh;background:radial-gradient(ellipse at center,#1a0a2a,#05000a 75%);overflow:hidden}
+#g::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,#000 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 2px,transparent 2px 4px);animation:fl 3s infinite}
+#menu-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.35);z-index:0;pointer-events:none}
+#menu>*:not(#menu-bg){position:relative;z-index:1}
+@keyframes fl{0%,90%,100%{opacity:1}92%{opacity:.6}95%{opacity:.85}}
+.sc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:5;background:#05000a}
+h1{font-size:min(12vw,90px);margin:0;color:#e22;text-shadow:0 0 20px #f00,3px 3px #000;letter-spacing:4px}
+button{font-family:inherit;background:#111;color:#ddd;border:2px solid #555;padding:10px 20px;cursor:pointer;font-size:18px;transition:.2s}
+button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
+#hud{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:3;font-size:20px;color:#fff;text-shadow:0 0 8px #fff5}
+#tm{position:absolute;top:10px;left:20px;z-index:3;font-size:20px;color:#fff;text-shadow:0 0 8px #fff5}
+#room{position:absolute;inset:0;background:url(Images/SlaapKamerAchtergrond.png) center/cover no-repeat,linear-gradient(#2b1a3a 0 68%,#3a2418 68% 100%);box-shadow:inset 0 0 80px #000}
+
+/* Night intro scherm */
+#night-intro{position:absolute;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:60px}
+#night-intro.on{display:flex}
+#night-intro-bg{position:absolute;inset:0;background:url(Images/Night1Introduction.png) center/cover no-repeat}
+#night-intro-overlay{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+#night-intro-btn{position:relative;z-index:2;font-family:inherit;background:rgba(0,0,0,.8);color:#ddd;border:2px solid #666;padding:14px 40px;font-size:20px;cursor:pointer;letter-spacing:3px;transition:.2s;text-shadow:0 0 10px #fff5}
+#night-intro-btn:hover{background:rgba(30,30,30,.95);color:#fff;box-shadow:0 0 20px #fff3;border-color:#aaa}
+
+/* Camera monitor */
+#cam{position:absolute;inset:0;z-index:2;background:#040404;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start}
+#cam.on{display:flex}
+
+/* Camera feed */
+#cs{position:relative;flex:1;overflow:hidden;background-size:cover;background-position:center bottom;border-bottom:2px solid #333}
+#cs::after{content:"";position:absolute;inset:0;pointer-events:none;
+ background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.7) 100%);
+ z-index:2}
+#cv{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:18px;color:#fff;text-shadow:0 0 8px #fff8;z-index:3;background:rgba(0,0,0,.65);padding:3px 14px;border:1px solid #444;letter-spacing:2px}
+#cd{position:absolute;top:12px;left:14px;color:#aaa;opacity:.8;letter-spacing:2px;background:rgba(0,0,0,0.65);padding:4px 8px;border:1px solid #444;z-index:3;font-size:13px}
+#crec{position:absolute;top:14px;right:14px;color:#f44;z-index:3;font-size:13px;animation:blink 1s step-start infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* Storing overlay */
+#static-overlay{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,rgba(0,0,0,.9) 1px 4px),rgba(5,5,5,.97)}
+#static-overlay.on{display:flex}
+#static-text{color:#f80;font-size:22px;letter-spacing:4px;text-shadow:0 0 12px #f80;animation:blink 1s step-start infinite}
+#static-sub{color:#555;font-size:13px;letter-spacing:2px;margin-top:8px}
+
+/* Repareer knop */
+#repair-btn{display:none;font-family:inherit;background:#1a0a00;border:2px solid #f80;color:#f80;padding:14px 28px;font-size:16px;cursor:pointer;letter-spacing:2px;margin-top:20px;transition:.2s;position:relative;overflow:hidden}
+#repair-btn.visible{display:block}
+#repair-btn:hover{background:#2a1500}
+#repair-progress{position:absolute;bottom:0;left:0;height:3px;background:#f80;width:0%;transition:none;box-shadow:0 0 8px #f80}
+
+/* Gijs onderaan camera */
+#ec{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none}
+
+/* Voortgangsbalk camera-wissel */
+#cam-progress-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1);z-index:4}
+#cam-progress{height:100%;background:#fff;width:0%;transition:width .1s linear;box-shadow:0 0 6px #fff}
+
+/* Onderste balk */
+#cambar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:#080808;border-top:2px solid #333;gap:10px;flex-shrink:0;min-height:56px}
+#spdbtn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:6px 0;font-size:14px;cursor:pointer;transition:.2s;white-space:nowrap;width:130px;text-align:center;display:block}
+#spdbtn.fast{background:#1a0000;border-color:#822;color:#f88;box-shadow:0 0 10px #f004}
+#spdbtn:hover{background:#333;color:#fff}
+#spdbtn.fast:hover{background:#500;color:#fff}
+
+/* Knoppen onderaan kamer */
+#bar{position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:center;gap:12px;z-index:3}
+
+/* Deur-UI (apart scherm) */
+#door-ui{position:absolute;inset:0;z-index:10;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#door-ui.on{display:flex}
+#door-ui-title{font-size:22px;color:#fff;letter-spacing:4px;border-bottom:1px solid #333;padding-bottom:10px;width:320px;text-align:center}
+#door-power{font-size:14px;color:#888;letter-spacing:2px;margin-top:-10px}
+#door-power span{color:#fff;font-size:18px}
+.door-row{display:flex;align-items:center;justify-content:space-between;width:320px;gap:16px}
+.door-label{color:#888;font-size:13px;letter-spacing:2px;flex:1;text-align:center}
+.d-btn{font-family:inherit;background:#111;border:2px solid #444;color:#ccc;padding:14px 0;font-size:15px;cursor:pointer;transition:.2s;flex:1;letter-spacing:1px}
+.d-btn.closed{border-color:#888;color:#fff;background:#222;box-shadow:0 0 12px #fff3}
+.d-btn:hover{background:#333;color:#fff}
+#door-back{font-family:inherit;background:transparent;border:1px solid #333;color:#555;padding:8px 24px;font-size:13px;cursor:pointer;letter-spacing:2px;margin-top:10px;transition:.2s}
+#door-back:hover{color:#aaa;border-color:#666}
+
+/* Stroom-balk in deur-ui */
+#pwr-bar-wrap{width:320px;height:6px;background:#1a1a1a;border:1px solid #333}
+#pwr-bar{height:100%;background:#fff;transition:width 1s linear;box-shadow:0 0 8px #fff5}
+
+/* Stress meter — rechtsonder */
+#stress-meter{position:absolute;right:14px;bottom:14px;z-index:4;display:none;flex-direction:column;align-items:flex-end;gap:4px}
+#stress-meter.visible{display:flex}
+#stress-label{font-size:11px;color:#f44;letter-spacing:2px;text-shadow:0 0 6px #f44}
+#stress-bar-wrap{width:140px;height:8px;background:#1a0000;border:1px solid #600;border-radius:2px;overflow:hidden}
+#stress-bar{height:100%;background:#f00;width:0%;transition:width .3s;box-shadow:0 0 6px #f00;border-radius:2px}
+
+/* Ogen-sluiten knop — toggle bovenaan scherm */
+#eyes-btn{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;font-family:inherit;background:rgba(10,0,20,.85);border:2px solid #664;color:#cc9;padding:8px 22px;font-size:13px;cursor:pointer;letter-spacing:2px;transition:opacity .5s ease,background .2s,color .2s,border-color .2s;border-radius:3px;opacity:0;pointer-events:none;text-align:center;white-space:nowrap}
+#eyes-btn.visible{opacity:1;pointer-events:auto}
+#eyes-btn.active{background:rgba(0,0,0,.95);color:#fff;border-color:#aa8;box-shadow:0 0 16px #aa84}
+#eyes-btn:hover{background:rgba(30,20,50,.9);color:#eee;border-color:#886}
+
+/* Ogen dicht overlay */
+#eyes-closed{position:fixed;inset:0;z-index:50;background:#000;display:none}
+#eyes-closed.on{display:block}
+
+/* Dialoog scherm */
+#dialogue-screen{position:fixed;inset:0;z-index:35;display:none;flex-direction:column;align-items:center;justify-content:flex-end;background:radial-gradient(ellipse at center,#0d0510,#000);padding-bottom:80px}
+#dialogue-screen.on{display:flex}
+#dialogue-portrait{width:min(220px,40vw);opacity:.15;position:absolute;bottom:0;left:50%;transform:translateX(-50%);pointer-events:none;filter:grayscale(1)}
+#dialogue-box{position:relative;z-index:2;max-width:600px;width:90%;background:rgba(5,0,10,.92);border:1px solid #333;padding:30px 36px;margin-bottom:24px}
+#dialogue-text{font-size:clamp(16px,2.5vw,22px);color:#ddd;letter-spacing:1px;line-height:1.7;min-height:80px;text-shadow:0 0 8px #fff2}
+#dialogue-next{font-family:inherit;background:transparent;border:1px solid #444;color:#666;padding:10px 28px;font-size:14px;cursor:pointer;letter-spacing:3px;transition:.2s;margin-top:20px;display:block;margin-left:auto}
+#dialogue-next:hover{color:#aaa;border-color:#888}
+#dialogue-name{font-size:11px;color:#444;letter-spacing:4px;margin-bottom:12px;text-transform:uppercase}
+
+/* Waarschuwingsscherm */
+#warning-screen{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:30px}
+#warning-screen.off{display:none}
+#warning-text{max-width:640px;font-size:clamp(16px,2.6vw,24px);line-height:1.7;color:#ddd;letter-spacing:1px}
+#warning-text b{display:block;color:#f22;font-size:clamp(24px,5vw,44px);text-shadow:0 0 20px #f00;margin-bottom:18px;letter-spacing:3px}
+#warning-btn{letter-spacing:3px;padding:14px 36px}
+#bar button:disabled{opacity:.25;cursor:not-allowed;box-shadow:none}
+#js{position:fixed;inset:0;z-index:60;background:#000;display:none;align-items:center;justify-content:center}
+#js video{width:100vw;height:100vh;object-fit:cover}
+
+/* GameOver scherm */
+#gameover-screen{position:fixed;inset:0;z-index:25;display:none;flex-direction:column;align-items:center;justify-content:flex-end;background:#000;padding-bottom:60px}
+#gameover-screen.on{display:flex}
+#gameover-screen img{position:absolute;inset:0;width:100vw;height:100vh;object-fit:cover}
+#go-title{position:relative;z-index:2;font-size:min(14vw,100px);color:#f00;text-shadow:0 0 30px #f00,0 0 60px #900;letter-spacing:6px;font-family:'Courier New',monospace;animation:gopulse 1.2s ease-in-out infinite}
+#go-back-btn{position:relative;z-index:2;font-family:'Courier New',monospace;background:rgba(0,0,0,.85);color:#f44;border:2px solid #f00;padding:14px 36px;font-size:18px;cursor:pointer;letter-spacing:3px;transition:.2s;text-shadow:0 0 10px #f00;margin-top:16px}
+#go-back-btn:hover{background:#1a0000;box-shadow:0 0 20px #f006;color:#fff}
+@keyframes gopulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* 6AM scherm */
+#alarm-screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0a0a1a,#000);cursor:pointer}
+#alarm-screen.on{display:flex}
+#alarm-glyph{width:80px;height:80px;border:3px solid #fa0;border-radius:50%;box-shadow:0 0 30px #fa0,0 0 60px #fa08;animation:alarmglow 0.8s ease-in-out infinite alternate;position:relative;margin-bottom:20px}
+#alarm-glyph::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:#fa0;border-radius:50%;box-shadow:0 0 15px #fa0}
+#alarm-glyph::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-100%) rotate(-45deg);width:2px;height:24px;background:#fa0;transform-origin:bottom center;animation:clockhand 1s step-end infinite}
+#alarm-time{font-size:80px;color:#fff;letter-spacing:8px;text-shadow:0 0 30px #fff,0 0 60px #fa0;margin-top:0}
+#alarm-msg{font-size:22px;color:#fa0;letter-spacing:4px;margin-top:20px;text-shadow:0 0 12px #fa0}
+#alarm-sub{font-size:13px;color:#555;letter-spacing:3px;margin-top:30px}
+@keyframes alarmglow{0%{box-shadow:0 0 20px #fa0,0 0 40px #fa04}100%{box-shadow:0 0 40px #fa0,0 0 80px #fa08}}
+@keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg);transform-origin:bottom center}100%{transform:translate(-50%,-100%) rotate(360deg);transform-origin:bottom center}}
+</style>
+</head>
+<body>
+<div id="g">
+<audio id="amb" src="Audio/Ambience.mp3" loop preload="auto"></audio>
+<audio id="snd-menu" src="Audio/Menu.mp3" loop preload="auto"></audio>
+<audio id="snd-switch" src="Audio/CameraSwitch.mp3" preload="auto"></audio>
+<audio id="snd-alarm" src="Audio/Alarm.mp3" preload="auto"></audio>
+<audio id="snd-dclose" src="Audio/DoorClose.mp3" preload="auto"></audio>
+<audio id="snd-dopen" src="Audio/DoorOpen.mp3" preload="auto"></audio>
+<audio id="snd-steps" src="Audio/Footsteps.mp3" preload="auto"></audio>
+<audio id="snd-laugh" src="Audio/Laugh.mp3" preload="auto"></audio>
+<audio id="snd-repair" src="Audio/Repair.mp3" preload="auto"></audio>
+<audio id="snd-camopen" src="Audio/CameraOpen.mp3" preload="auto"></audio>
+<audio id="snd-f3" src="Audio/F3.mp3" preload="auto"></audio>
+<audio id="snd-f4" src="Audio/F4.mp3" preload="auto"></audio>
+<audio id="snd-f5" src="Audio/F5.mp3" preload="auto"></audio>
+<audio id="snd-feardeath" src="Audio/FearDeath.mp3" preload="auto"></audio>
+<audio id="snd-5am" src="Audio/5AM.mp3" preload="auto"></audio>
+<audio id="snd-gameover" src="Audio/GameOver.mp3" preload="auto"></audio>
+<audio id="snd-6am" src="Audio/6AM.mp3" preload="auto"></audio>
+<audio id="snd-power" src="Audio/Power.mp3" preload="auto"></audio>
+<audio id="snd-oom-cue" src="Audio/GijsOomCue.mp3" preload="auto"></audio>
+<audio id="snd-oom-warning" src="Audio/GijsOomWarning.mp3" preload="auto"></audio>
+<audio id="snd-random" src="" preload="none"></audio>
+<audio id="snd-textamb" src="Audio/TextAmbience.mp3" loop preload="auto"></audio>
+<audio id="snd-nightintro" src="Audio/NightIntroduction.mp3" loop preload="auto"></audio>
+<audio id="snd-tom" src="Audio/Tom.mp3" loop preload="auto"></audio>
+<audio id="snd-tomjs" src="Audio/TomJumpscare.mp3" preload="auto"></audio>
+
+<!-- Waarschuwingsscherm -->
+<div id="warning-screen">
+ <div id="warning-text"><b>WAARSCHUWING!!</b>Dit spel bevat jumpscares en andere harde geluiden! Voor de beste ervaring speel met koptelefoon in een donkere kamer.</div>
+ <button id="warning-btn" onclick="dismissWarning()">TOCH DOORGAAN</button>
+</div>
+
+<!-- Night intro -->
+<div id="night-intro">
+ <div id="night-intro-bg"></div>
+ <div id="night-intro-overlay"></div>
+ <button id="night-intro-btn" onclick="beginNight()">▶ START DE NACHT</button>
+</div>
+
+<div class="sc" id="menu">
+ <video id="menu-bg" src="Background.mp4" autoplay muted loop playsinline preload="auto"></video>
+ <h1>geGIJSeld</h1>
+ <p style="color:#aaa">Je zit gevangen in een nachtmerrie.<br>Overleef tot 6 uur 's ochtends in je slaapkamer tegen Meester Gijs.</p>
+ <p style="color:#555;font-size:14px">In de wereld van de gijzeler gelden andere regels. Gebruik de weinige informatie die je hebt om zijn locatie te traceren. Stroom is beperkt. Je kunt niet voor altijd achter je verdedigingen schuilen.</p>
+ <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+  <button onclick="selectNight(1)">NACHT 1</button>
+  <button onclick="selectNight(2)" id="night2-btn">NACHT 2</button>
+  <button onclick="selectNight(3)" id="night3-btn">NACHT 3</button>
+ </div>
+</div>
+
+<div class="sc" id="end" style="display:none">
+ <h1 id="et"></h1>
+ <p id="ep"></p>
+ <button onclick="showNightIntro()">OPNIEUW</button>
+</div>
+
+<span id="tm">12 AM</span>
+
+<div id="room"></div>
+
+<!-- Stress meter -->
+<div id="stress-meter">
+ <div id="stress-label">⚠ STRESS: <span id="stress-percent">0%</span></div>
+ <div id="stress-bar-wrap"><div id="stress-bar"></div></div>
+</div>
+
+<!-- Ogen-sluiten knop -->
+<button id="eyes-btn">OGEN SLUITEN [SHIFT]</button>
+
+<!-- Camera UI -->
+<div id="cam">
+ <div id="cs">
+  <div id="cv">REC CAM 1 — Woonkamer</div>
+  <div id="cd">CAM 1</div>
+  <div id="crec">● REC</div>
+  <img id="ec" src="Images/GijsF1.png">
+  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none">
+  <!-- Storing overlay -->
+  <div id="static-overlay">
+   <div id="static-text">⚠ GEEN SIGNAAL</div>
+   <div id="static-sub">VIDEOSTORING GEDETECTEERD</div>
+   <button id="repair-btn" onmousedown="startRepair()" onmouseup="stopRepair()" onmouseleave="stopRepair()" ontouchstart="startRepair(event)" ontouchend="stopRepair()">
+    REPAREER VIDEOBEELDEN
+    <div id="repair-progress"></div>
+   </button>
+  </div>
+  <!-- Voortgangsbalk -->
+  <div id="cam-progress-wrap"><div id="cam-progress"></div></div>
+ </div>
+ <div id="cambar">
+  <span id="cam-name" style="color:#666;font-size:13px;letter-spacing:2px"></span>
+  <button id="spdbtn" onclick="toggleSpeed()">VERSNELLEN</button>
+ </div>
+</div>
+
+<!-- Deur UI -->
+<div id="door-ui">
+ <div id="door-ui-title">DEURSYSTEEM</div>
+ <div id="door-power">Stroom: <span id="door-pw-val">100</span>%</div>
+ <div id="pwr-bar-wrap"><div id="pwr-bar" style="width:100%"></div></div>
+ <div class="door-row">
+  <button class="d-btn" id="dl-btn" onclick="toggleDoor(0)">
+   <div class="door-label">LINKS</div>
+   <span id="dl-st">OPEN</span>
+  </button>
+  <button class="d-btn" id="dr-btn" onclick="toggleDoor(1)">
+   <div class="door-label">RECHTS</div>
+   <span id="dr-st">OPEN</span>
+  </button>
+ </div>
+ <button id="door-back" onclick="toggleDoorUI()">TERUG</button>
+</div>
+
+<div id="bar">
+ <button onclick="tcam()">BEVEILIGINGSSYSTEEM [SPATIE]</button>
+ <button onclick="toggleDoorUI()">DEURSYSTEEM</button>
+</div>
+
+<div id="js">
+ <video id="jv" src="Videos/GijsJumpscare.mp4" playsinline preload="auto"></video>
+</div>
+<div id="js2" style="position:fixed;inset:0;z-index:60;background:#000;display:none;align-items:center;justify-content:center">
+ <video id="jv2" src="Videos/GijsOomJumpscare.mp4" playsinline preload="auto" style="width:100vw;height:100vh;object-fit:cover"></video>
+</div>
+
+<div id="js3" style="position:fixed;inset:0;z-index:60;background:#000;display:none;align-items:center;justify-content:center">
+ <img id="js3-img" src="Images/TomJumpscare.png" alt="" style="width:100vw;height:100vh;object-fit:cover">
+</div>
+
+<!-- Gameover scherm -->
+<div id="gameover-screen">
+ <img id="gameover-img" src="Images/GameOver.png" alt="Game Over">
+ <div id="go-title">GAME OVER</div>
+ <button id="go-back-btn" onclick="goToMenu()">TERUG NAAR MENU</button>
+</div>
+
+<!-- 6AM scherm -->
+<div id="alarm-screen">
+ <div id="alarm-glyph"></div>
+ <div id="alarm-time">06:00</div>
+ <div id="alarm-msg">JE HEBT OVERLEEFD</div>
+ <div id="alarm-sub">[ klik om verder te gaan ]</div>
+</div>
+
+<!-- Dialoog scherm -->
+<div id="dialogue-screen">
+ <div id="dialogue-portrait"><img src="Images/GijsF1.png" style="width:100%;display:block"></div>
+ <div id="dialogue-box">
+  <div id="dialogue-name">— onbekende stem —</div>
+  <div id="dialogue-text"></div>
+  <button id="dialogue-next" onclick="nextDialogue()">VOLGENDE ›</button>
+ </div>
+</div>
+
+<!-- The End scherm -->
+<div id="theend-screen" style="position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center">
+ <video id="theend-bg" src="Background.mp4" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(1)"></video>
+ <audio id="snd-theend" src="Audio/TheEnd.mp3" preload="auto"></audio>
+ <div style="position:relative;z-index:2;text-align:center">
+  <div id="theend-title" style="font-size:min(16vw,110px);color:#fff;text-shadow:0 0 40px #fff,0 0 80px #fff8;letter-spacing:8px;opacity:0;transition:opacity 3s ease">THE END</div>
+ </div>
+</div>
+
+<!-- Ogen dicht -->
+<div id="eyes-closed"></div>
+</div>
+
+<script>
+function $(id){return document.getElementById(id)}
+
+// Waarschuwingsscherm: pas na klik op de knop gaat het menu (en Menu.mp3) aan
+function dismissWarning(){
+ $('warning-screen').classList.add('off');
+ playMenuAudio();
+}
+
+const CAMS=[
+ {n:'1: Woonkamer',bg:'Camera/Cam1Background.png'},
+ {n:'2: Eetkamer',bg:'Camera/Cam2Background.png'},
+ {n:'3: Kantoor',bg:'Camera/Cam3Background.png'},
+ {n:'4: Linkergang',bg:'Camera/Cam4Background.png'},
+ {n:'5: Rechtergang',bg:'Camera/Cam5Background.png'}
+];
+
+const SW_NORMAL=5200,SW_FAST=1950;
+let S={};
+let camSwitchTimer=null;
+let camSwitchStart=0;
+let progressRaf=null;
+let repairInterval=null;
+let repairProgress=0;
+let played5AM=false;
+
+// Stress
+const STRESS_MAX=100;
+// Stress: 1% per seconde op het beveiligingssysteem
+const STRESS_RATE_PER_SEC=1.4; // 40% sneller dan voorheen (was 1)
+const STRESS_F=[
+ {phase:1,img:'Images/GijsF1.png',threshold:0},
+ {phase:2,img:'Images/GijsF2.png',threshold:25},
+ {phase:3,img:'Images/GijsF3.png',threshold:50},
+ {phase:4,img:'Images/GijsF4.png',threshold:75},
+ {phase:5,img:'Images/GijsF5.png',threshold:90}
+];
+let stressPhase=0;
+let f5StartTime=0;
+let stressRaf=null;
+let stressDecayRaf=null;
+let stressInterval=null;
+let lastStressTick=0;
+const STRESS_SOUNDS=['snd-f3','snd-f4','snd-f5'];
+const STRESS_VOLUME=0.3;
+function stopStressSounds(){
+ STRESS_SOUNDS.forEach(id=>{const a=$(id);if(a){a.pause();a.currentTime=0;}});
+}
+function playStressSound(id){
+ stopStressSounds();
+ const a=$(id);if(!a)return;
+ a.volume=STRESS_VOLUME;a.currentTime=0;a.play().catch(()=>{});
+}
+// Camera-wissel voortgang (0..1) blijft bewaard bij sluiten/heropenen en snelheid wisselen
+let camFrac=0;
+
+// Ogen toggle
+let eyesHeld=false;
+let shiftDown=false;
+
+/* ---- Agressiviteit per monster per nacht (subtiel stijgend) ---- */
+const AGGR={
+ gijs:{delayMul:{1:1,2:0.93,3:0.86},window:{1:12,2:12,3:11}}, // lager delayMul = vaker bewegen
+ oom:{gapMul:{2:1,3:0.85}},                                    // lager gapMul = verschijnt vaker
+ tom:{chance:{3:0.30}}                                         // kans per 12 sec om te bewegen
+};
+const POWER_SCALE=0.75; // nacht duurt 6 min i.p.v. 4,5 min: stroomverbruik geschaald zodat de balans gelijk blijft
+function gijsMul(){return AGGR.gijs.delayMul[currentNight]||1;}
+function gijsWindow(){return AGGR.gijs.window[currentNight]||12;}
+function getGijsDelayForPhase(){
+ const base=(Math.floor(Math.random()*10)+16)*gijsMul();
+ const bonus=Math.min(stressPhase*2,10);
+ return Math.max(4,Math.round(base-bonus));
+}
+
+function snd(id){try{const a=$(id);a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
+function playAmbience(){const a=$('amb');if(!a)return;a.currentTime=0;a.play().catch(()=>{});}
+function stopAmbience(){const a=$('amb');if(a){a.pause();a.currentTime=0;}}
+function stopAllAudio(){
+ document.querySelectorAll('audio').forEach(a=>{try{a.pause();a.currentTime=0;}catch(e){}});
+}
+(function(){
+ const v=document.getElementById('menu-bg');if(!v)return;
+ v.muted=true;v.defaultPlaybackRate=0.4;v.playbackRate=0.4;
+ ['loadedmetadata','play','playing'].forEach(e=>v.addEventListener(e,()=>{v.playbackRate=0.4;}));
+})();
+function playMenuVideo(){
+ const v=$('menu-bg');if(!v)return;
+ v.muted=true;v.defaultPlaybackRate=0.4;v.playbackRate=0.4;
+ v.play().catch(()=>{});
+}
+function playMenuAudio(){
+ playMenuVideo();
+ stopAllAudio();
+ const a=$('snd-menu');if(!a)return;a.currentTime=0;a.play().catch(()=>{});
+}
+function goToMenu(){
+ $('gameover-screen').classList.remove('on');
+ $('dialogue-screen').classList.remove('on');
+ $('alarm-screen').classList.remove('on');
+ $('end').style.display='none';
+ $('menu').style.display='flex';
+ playMenuAudio();
+}
+
+let currentNight=1;
+
+function selectNight(n){
+ currentNight=n;
+ stopAllAudio();
+ $('menu').style.display=$('end').style.display='none';
+ const bg=$('night-intro-bg');
+ bg.style.backgroundImage=`url('Images/Night${n}Introduction.png')`;
+ $('night-intro').classList.add('on');
+ const ni=$('snd-nightintro');if(ni){ni.currentTime=0;ni.play().catch(()=>{});}
+}
+
+function showNightIntro(){selectNight(currentNight);}
+
+function beginNight(){
+ $('night-intro').classList.remove('on');
+ stopAllAudio();
+ snd('snd-camopen');
+ actualStart();
+}
+
+function actualStart(){
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ camSwitchTimer=null;camFrac=0;
+ cancelAnimationFrame(progressRaf);
+ $('cam-progress').style.width='0%';
+ $('room').style.display='';$('bar').style.display='';$('tm').style.display='';
+ setBarDisabled(false);
+ stopRepair();
+ resetStress();
+ played5AM=false;
+ S={
+  p:100,d:[0,0],h:0,
+  cam:false,door:false,
+  activeCam:0,fast:false,
+  gijsPos:0,gijsTimer:getGijsDelayForPhase(),
+  tomPos:0,tomPhase:'idle',tomDoor:-1,tomCountdown:0,t0:performance.now(),
+  attackPhase:'idle',
+  attackDoor:-1,
+  attackCountdown:0,
+  over:false,powerOut:false,tick:0,
+  hasFault:false,faultNotified:false,showSecret:false
+ };
+ $('js').style.display='none';
+ $('js2').style.display='none';
+ $('gameover-screen').classList.remove('on');
+ $('alarm-screen').classList.remove('on');
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('static-overlay').classList.remove('on');
+ $('repair-btn').classList.remove('visible');
+ $('eyes-closed').classList.remove('on');
+ $('ec-oom').style.display='none';
+ eyesHeld=false;shiftDown=false;
+ resetOom();
+ $('js3').style.display='none';
+ playAmbience();
+ setupEyesBtn();
+ draw();
+ if(S.iv)clearInterval(S.iv);
+ S.iv=setInterval(loop,1000);
+ startStressLoop();
+ startRandomAudioLoop();
+ if(currentNight>=2)scheduleOom();
+}
+
+/* ---- Random Audio ---- */
+let randomAudioInterval=null;
+function startRandomAudioLoop(){
+ if(randomAudioInterval)clearInterval(randomAudioInterval);
+ randomAudioInterval=setInterval(()=>{
+  if(!S||S.over)return;
+  const stress=S.stress||0;
+  const chance=(0.1+stress*0.1)/100;
+  if(Math.random()<chance){
+   const n=Math.floor(Math.random()*15)+1;
+   const a=$('snd-random');
+   a.src='RandomAudio/RandomAudio'+n+'.mp3';
+   a.currentTime=0;a.play().catch(()=>{});
+  }
+ },5000);
+}
+
+/* ---- Stress ---- */
+function resetStress(){
+ S.stress=0;
+ stressPhase=0;
+ $('ec').src='Images/GijsF1.png';
+ f5StartTime=0;
+ stopStressSounds();
+ cancelAnimationFrame(stressRaf);
+ cancelAnimationFrame(stressDecayRaf);
+ stressRaf=null;stressDecayRaf=null;
+ updateStressUI();
+}
+
+function getStressPhaseIdx(val){
+ let idx=0;
+ for(let i=STRESS_F.length-1;i>=0;i--){
+  if(val>=STRESS_F[i].threshold){idx=i;break;}
+ }
+ return idx;
+}
+
+function startStressLoop(){
+  if(stressInterval)clearInterval(stressInterval);
+  // Exact: elke volledige seconde op het beveiligingssysteem = +1% stress.
+  stressInterval=setInterval(()=>{
+   if(!S||S.over)return;
+   if(S.cam&&!S.door&&!eyesHeld){
+    S.stress=Math.min(STRESS_MAX,(S.stress||0)+STRESS_RATE_PER_SEC);
+    updateStressDisplay();
+   }
+  },1000);
+}
+
+function startStressDecay(){
+ cancelAnimationFrame(stressDecayRaf);
+ function tick(){
+  if(!S||S.over){cancelAnimationFrame(stressDecayRaf);return;}
+  if(!eyesHeld){cancelAnimationFrame(stressDecayRaf);stressDecayRaf=null;return;}
+  stressDecayRaf=requestAnimationFrame(tick);
+  S.stress=Math.max(0,S.stress-0.05);
+  updateStressDisplay();
+ }
+ stressDecayRaf=requestAnimationFrame(tick);
+}
+
+function updateStressDisplay(){
+ updateStressUI();
+ const idx=getStressPhaseIdx(S.stress);
+ if(idx!==stressPhase){
+  const prev=stressPhase;
+  stressPhase=idx;
+  $('ec').src=STRESS_F[idx].img;
+  // Vorige fase is voorbij: stop de bijbehorende stressgeluiden
+  stopStressSounds();
+  if(prev===4&&idx<4)f5StartTime=0;
+  if(idx===2&&prev<2)playStressSound('snd-f3');
+  else if(idx===3&&prev<3)playStressSound('snd-f4');
+  else if(idx===4&&prev<4){playStressSound('snd-f5');f5StartTime=performance.now();}
+ }
+ checkFearDeath();
+}
+
+function checkFearDeath(){
+ if(S&&!S.over&&stressPhase===4&&f5StartTime>0&&performance.now()-f5StartTime>=30000)fearDeath();
+}
+
+function updateStressUI(){
+ if(!S)return;
+ const pct=Math.max(0,Math.min(100,S.stress||0));
+  $('stress-bar').style.width=pct+'%';
+  $('stress-percent').textContent=Math.floor(pct)+'%';
+  // Stress meter: alleen tonen in de slaapkamer, dus niet op beveiligings- of deursysteem
+  const sm=$('stress-meter');
+  const inBedroom=S&&!S.cam&&!S.door;
+  if(inBedroom&&!S.over&&!eyesHeld){sm.classList.add('visible');}
+  else{sm.classList.remove('visible');}
+ const colors=['#0f0','#ff0','#f80','#f00','#f0f'];
+ const c=colors[stressPhase]||'#f00';
+ $('stress-bar').style.background=c;
+ $('stress-bar').style.boxShadow=`0 0 10px ${c}`;
+ // Ogen-knop: toon alleen als NOT in cam/deuren systeem
+ const eb=$('eyes-btn');
+ if(S&&!S.over&&!S.cam&&!S.door){eb.classList.add('visible');}
+ else{eb.classList.remove('visible');}
+ if(eyesHeld){eb.classList.add('active');eb.textContent='OGEN OPEN [SHIFT]';}
+ else{eb.classList.remove('active');eb.textContent='OGEN SLUITEN [SHIFT]';}
+}
+
+/* ---- Ogen toggle-knop ---- */
+function setupEyesBtn(){
+ const btn=$('eyes-btn');
+ btn.onclick=toggleEyes;
+ btn.ontouchstart=e=>{e.preventDefault();toggleEyes();};
+}
+
+function toggleEyes(){
+ if(S.over)return;
+ if(eyesHeld)openEyes();
+ else closeEyes();
+}
+
+function openEyes(){
+ if(!eyesHeld)return;
+ eyesHeld=false;
+ $('eyes-closed').classList.remove('on');
+ cancelAnimationFrame(stressDecayRaf);
+ stressDecayRaf=null;
+ updateStressUI();
+}
+
+function closeEyes(){
+ if(eyesHeld||S.over)return;
+ eyesHeld=true;
+ $('eyes-closed').classList.add('on');
+ $('stress-meter').classList.remove('visible');
+ startStressDecay();
+}
+
+/* ---- Jumpscare (video) ---- */
+let jsAudioCtx=null,jsGainNode=null;
+function boostJumpscareVolume(v){
+ v.muted=false;v.volume=1;
+ // Extra versterking via Web Audio (werkt niet vanaf file://, dan blijft het op max volume van het element)
+ if(location.protocol==='file:')return;
+ try{
+  if(!jsAudioCtx){
+   jsAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+   const src=jsAudioCtx.createMediaElementSource(v);
+   jsGainNode=jsAudioCtx.createGain();
+   const comp=jsAudioCtx.createDynamicsCompressor();
+   src.connect(jsGainNode);jsGainNode.connect(comp);comp.connect(jsAudioCtx.destination);
+  }
+  jsGainNode.gain.value=2.5;
+  if(jsAudioCtx.state==='suspended')jsAudioCtx.resume();
+ }catch(e){}
+}
+
+function playJumpscare(gameOverImg){
+ const j=$('js'),v=$('jv');
+ $('eyes-closed').classList.remove('on');
+ j.style.display='flex';
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  snd('snd-gameover');
+  $('gameover-img').src=gameOverImg;
+  $('gameover-screen').classList.add('on');
+ };
+ v.onended=done;v.onerror=()=>setTimeout(done,1500);
+ boostJumpscareVolume(v);
+ v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+ setTimeout(done,15000);
+}
+
+/* ---- Fear death ---- */
+function fearDeath(){
+ if(S.over)return;
+ S.over=true;eyesHeld=false;
+ stopAllAudio();
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);
+ cancelAnimationFrame(stressDecayRaf);
+ stopRepair();
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('bar').style.display='none';
+ $('tm').style.display='none';
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ playJumpscare('Images/GameOverFear.png');
+}
+
+/* ---- Voortgangsbalk ---- */
+function camInterval(){return S.fast?SW_FAST:SW_NORMAL;}
+
+function startProgressBar(){
+ cancelAnimationFrame(progressRaf);
+ function tick(){
+  if(!S.cam||S.over){return;}
+  const elapsed=performance.now()-camSwitchStart;
+  const pct=Math.min(100,(elapsed/camInterval())*100);
+  $('cam-progress').style.width=pct+'%';
+  progressRaf=requestAnimationFrame(tick);
+ }
+ progressRaf=requestAnimationFrame(tick);
+}
+
+/* ---- Camera auto-switch ---- */
+// Draait de wisselcyclus vanaf de bewaarde voortgang (camFrac) en plant de volgende wissel.
+function runCamCycle(){
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ const interval=camInterval();
+ camSwitchStart=performance.now()-camFrac*interval;
+ camSwitchTimer=setTimeout(onCamSwitch,(1-camFrac)*interval);
+ startProgressBar();
+}
+
+// Bewaart de huidige voortgang en stopt de timer
+function pauseCamCycle(){
+ const interval=camInterval();
+ camFrac=Math.max(0,Math.min(1,(performance.now()-camSwitchStart)/interval));
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ camSwitchTimer=null;
+ cancelAnimationFrame(progressRaf);
+}
+
+function onCamSwitch(){
+ if(S.over||!S.cam)return;
+ const prevCam=S.activeCam;
+ S.activeCam=(S.activeCam+1)%CAMS.length;
+ camFrac=0;
+ snd('snd-switch');
+ if(currentNight>=2&&oomVisible&&prevCam===oomCam)handleOomCamLeave();
+ if(S.fast&&!S.hasFault&&Math.random()<0.05){S.hasFault=true;S.faultNotified=true;}
+ S.showSecret=(Math.random()<0.001);
+ draw();
+ runCamCycle();
+}
+
+function toggleSpeed(){
+ if(S.over||!S.cam||S.powerOut)return;
+ // voortgang vastleggen met het OUDE interval, daarna wisselen en doorgaan met het nieuwe
+ pauseCamCycle();
+ S.fast=!S.fast;
+ snd('snd-alarm');
+ runCamCycle();
+ draw();
+}
+
+function tcam(){
+ if(S.over||S.door||S.powerOut)return;
+ S.cam=!S.cam;
+ $('cam').classList.toggle('on',S.cam);
+ if(S.cam){
+  snd('snd-camopen');
+  // hervat vanaf de bewaarde voortgang (niet vanaf 0)
+  camFrac=Math.min(camFrac,0.85); // max 85% bij heropenen: speler houdt reactietijd
+  runCamCycle();
+  $('cam-progress').style.width=(camFrac*100)+'%';
+ } else {
+  pauseCamCycle();
+  camFrac=Math.min(camFrac,0.85);
+  $('cam-progress').style.width=(camFrac*100)+'%';
+ }
+ updateStressUI();
+ draw();
+}
+
+function toggleDoorUI(){
+ if(S.over||S.powerOut)return;
+ if(!S.door&&S.cam){tcam();}
+ S.door=!S.door;
+ if(S.door)snd('snd-camopen');
+ $('door-ui').classList.toggle('on',S.door);
+ updateStressUI();
+ draw();
+}
+
+/* ---- Reparatie ---- */
+function startRepair(e){
+ if(e)e.preventDefault();
+ if(repairInterval||!S.hasFault)return;
+ repairProgress=0;
+ $('repair-progress').style.width='0%';
+ const repAudio=$('snd-repair');
+ repAudio.currentTime=0;repAudio.play().catch(()=>{});
+ repairInterval=setInterval(()=>{
+  repairProgress+=100/30;
+  $('repair-progress').style.width=Math.min(100,repairProgress)+'%';
+  if(repairProgress>=100){
+   clearInterval(repairInterval);repairInterval=null;
+   repAudio.pause();
+   S.hasFault=false;S.faultNotified=false;
+   $('static-overlay').classList.remove('on');
+   $('repair-btn').classList.remove('visible');
+   draw();
+  }
+ },100);
+}
+
+function stopRepair(){
+ if(repairInterval){clearInterval(repairInterval);repairInterval=null;}
+ $('snd-repair').pause();
+ repairProgress=0;
+ $('repair-progress').style.width='0%';
+}
+
+/* ---- Deuren ---- */
+function toggleDoor(i){
+ if(S.over||S.powerOut)return;
+ S.d[i]=S.d[i]?0:1;
+ snd(S.d[i]?'snd-dclose':'snd-dopen');
+ if(S.attackPhase==='atdoor'&&S.attackDoor===i&&S.d[i]===1){
+  snd('snd-steps');
+  S.attackPhase='idle';S.attackDoor=-1;S.attackCountdown=0;
+  const delay=(Math.floor(Math.random()*6)+4)*1000;
+  setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
+ }
+ if(S.tomPhase==='atdoor'&&S.tomDoor===i&&S.d[i]===1)tomRepel();
+ draw();
+}
+
+/* ---- Draw ---- */
+function draw(){
+ $('tm').textContent=(S.h===0?12:S.h)+' AM';
+ $('tm').style.display=(S.cam||S.door)?'none':'block';
+ const p=Math.max(0,Math.ceil(S.p));
+ $('door-pw-val').textContent=p;
+ $('pwr-bar').style.width=p+'%';
+
+ const sb=$('spdbtn');
+ sb.textContent=S.fast?'VERTRAGEN [D]':'VERSNELLEN [D]';
+ sb.className=S.fast?'fast':'';
+
+ const cam=CAMS[S.activeCam];
+ $('cv').textContent='REC CAM '+cam.n;
+ $('cd').textContent='CAM '+(S.activeCam+1);
+ $('cam-name').textContent=cam.n;
+ $('cs').style.backgroundImage=S.showSecret?`url('Camera/CameraSecret.png')`:`url('${cam.bg}')`;
+
+ const showGijs=(S.gijsPos===S.activeCam&&S.attackPhase==='idle');
+ $('ec').style.display=showGijs?'block':'none';
+ if(currentNight>=2)drawOom();
+ updateTomAudio();
+
+ const so=$('static-overlay');
+ if(S.hasFault){so.classList.add('on');$('repair-btn').classList.add('visible');}
+ else{so.classList.remove('on');$('repair-btn').classList.remove('visible');}
+
+ const dl=$('dl-btn'),dr=$('dr-btn');
+ dl.className='d-btn'+(S.d[0]?' closed':'');
+ dr.className='d-btn'+(S.d[1]?' closed':'');
+ $('dl-st').textContent=S.d[0]?'DICHT':'OPEN';
+ $('dr-st').textContent=S.d[1]?'DICHT':'OPEN';
+
+ updateStressUI();
+}
+
+/* ---- GijsOom (Nacht 2) ---- */
+let oomCam=-1;        // welke camera hij op staat (-1=afwezig)
+let oomTimer=null;    // timeout voor volgende verschijning
+let oomHideTimer=null;// timeout om hem te verbergen
+let oomStage=0;       // 0=weg, 1=F1, 2=F2, 3=F3
+let oomVisible=false;
+
+const OOM_IMGS=['Images/GijsOomF1.png','Images/GijsOomF2.png','Images/GijsOomF3.png'];
+
+function resetOom(){
+ if(oomTimer)clearTimeout(oomTimer);
+ if(oomHideTimer)clearTimeout(oomHideTimer);
+ oomTimer=oomHideTimer=null;
+ oomCam=-1;oomStage=0;oomVisible=false;
+ $('ec-oom').style.display='none';
+}
+
+function oomMul(){return AGGR.oom.gapMul[currentNight]||1;}
+
+function scheduleOom(){
+ if(S.over)return;
+ if(oomTimer)clearTimeout(oomTimer);
+ const delay=(2+Math.random()*5)*1000*oomMul(); // 2–7 sec (was 5–20 + 8 sec pauze)
+ oomTimer=setTimeout(showOom,delay);
+}
+
+function showOom(){
+ if(S.over)return;
+ // Als de speler op de camera's kijkt verschijnt hij vaak op een van de eerstvolgende camera's
+ if(S.cam&&Math.random()<0.6)oomCam=(S.activeCam+1+Math.floor(Math.random()*2))%CAMS.length;
+ else oomCam=Math.floor(Math.random()*CAMS.length);
+ oomVisible=true;
+ const a=$('snd-oom-cue');a.currentTime=0;a.play().catch(()=>{});
+ drawOom();
+ oomHideTimer=setTimeout(hideOom,12000);
+}
+
+function hideOom(){
+ if(S.over)return;
+ oomCam=-1;oomVisible=false;
+ $('ec-oom').style.display='none';
+ scheduleOom();
+}
+
+function drawOom(){
+ if(!oomVisible||oomCam<0||S.activeCam!==oomCam){
+  $('ec-oom').style.display='none';return;
+ }
+ const img=$('ec-oom');
+ img.src=OOM_IMGS[Math.min(oomStage,2)];
+ img.style.display='block';
+}
+
+// Wordt aangeroepen bij elke camera-wissel in nacht 2
+function onCamSwitchOom(){
+ if(!oomVisible||oomCam<0)return;
+ // Controleer of de vorige activeCam de oom-cam was
+ if(S.activeCam===oomCam){
+  // camera verlaat oom-cam: waarschuwing
+  handleOomCamLeave();
+ }
+}
+
+function handleOomCamLeave(){
+ if(S.over)return;
+ const a=$('snd-oom-warning');a.currentTime=0;a.play().catch(()=>{});
+ S.stress=Math.min(STRESS_MAX,(S.stress||0)+20);
+ updateStressDisplay();
+ oomStage++;
+ if(oomStage>=3){
+  // Game over via GijsOom jumpscare
+  oomVisible=false;
+  if(oomTimer)clearTimeout(oomTimer);
+  if(oomHideTimer)clearTimeout(oomHideTimer);
+  S.over=true;stopAllAudio();
+  clearInterval(S.iv);
+  if(camSwitchTimer)clearTimeout(camSwitchTimer);
+  cancelAnimationFrame(progressRaf);
+  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+  stopRepair();
+  $('door-ui').classList.remove('on');
+  $('stress-meter').classList.remove('visible');
+  $('eyes-btn').classList.remove('visible','active');
+  // Speel GijsOom jumpscare
+  const j=$('js2'),v=$('jv2');
+  $('eyes-closed').classList.remove('on');
+  j.style.display='flex';
+  const done=()=>{
+   if(j.style.display==='none')return;
+   j.style.display='none';
+   snd('snd-gameover');
+   $('gameover-img').src='Images/GameOver.png';
+   $('gameover-screen').classList.add('on');
+  };
+  v.onended=done;v.onerror=()=>setTimeout(done,1500);
+  boostJumpscareVolume(v);
+  v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+  setTimeout(done,15000);
+ }
+}
+
+/* ---- Game loop ---- */
+function setBarDisabled(dis){
+ $('bar').querySelectorAll('button').forEach(b=>{b.disabled=dis;});
+}
+
+function powerFailure(){
+ S.powerOut=true;S.p=0;
+ if(S.cam)pauseCamCycle();
+ S.cam=false;S.door=false;S.d=[0,0];
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('cam-progress').style.width='0%';
+ stopRepair();
+ setBarDisabled(true);
+ stopAmbience();
+ stopStressSounds();
+ snd('snd-power');
+ draw();
+}
+
+function loop(){
+ if(S.over)return;
+ S.tick++;
+ if(!S.powerOut){
+  const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
+  S.p-=(basePower+camPower+doorPower)*POWER_SCALE;
+  if(S.p<=0)powerFailure();
+ }
+ checkFearDeath();
+ if(S.over)return;
+ // Elk uur (AM) duurt exact 60 seconden echte tijd
+ const hNow=Math.floor((performance.now()-S.t0)/60000);
+ if(hNow>S.h){
+  S.h=hNow;
+  if(S.h===5&&!played5AM){played5AM=true;stopAmbience();snd('snd-5am');}
+ }
+ if(S.h>=6)return win();
+ S.gijsTimer--;
+ if(S.attackPhase==='atdoor'){
+  S.attackCountdown--;
+  if(S.attackCountdown<=0){
+   if(S.d[S.attackDoor]===0)return die();
+   S.attackPhase='idle';S.attackDoor=-1;
+   snd('snd-steps');
+   const delay=(Math.floor(Math.random()*6)+4)*1000;
+   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
+  }
+ }
+ if(S.gijsTimer<=0){S.gijsTimer=getGijsDelayForPhase();moveGijs();}
+ if(currentNight>=3){tomTick();if(S.over)return;}
+ draw();
+}
+
+function moveGijs(){
+ if(S.attackPhase!=='idle')return;
+ if(S.gijsPos===0)S.gijsPos=1;
+ else if(S.gijsPos===1)S.gijsPos=2;
+ else if(S.gijsPos===2)S.gijsPos=Math.random()<.5?3:4;
+ else if(S.gijsPos===3||S.gijsPos===4){
+  const doorIdx=S.gijsPos===3?0:1;
+  S.attackPhase='leaving';S.attackDoor=doorIdx;
+  setTimeout(()=>{
+   if(S.over||S.attackPhase!=='leaving')return;
+   S.attackPhase='atdoor';S.attackCountdown=gijsWindow();draw();
+  },2000);
+ }
+}
+
+/* ---- Tom (Nacht 3) ---- */
+function tomTick(){
+ if(S.tomPhase==='atdoor'){
+  S.tomCountdown--;
+  if(S.tomCountdown<=0){
+   const door=S.tomDoor;
+   if(!S.d[door])return tomDie();   // deur open -> jumpscare
+   tomRepel();                      // deur dicht -> Tom gaat weg
+   return;
+  }
+ }
+ if(S.tick%12===0&&Math.random()<(AGGR.tom.chance[currentNight]||0))moveTom();
+}
+
+function moveTom(){
+ if(S.tomPhase!=='idle')return;
+ if(S.tomPos===0)S.tomPos=1;
+ else if(S.tomPos===1)S.tomPos=2;
+ else if(S.tomPos===2)S.tomPos=Math.random()<.5?3:4;
+ else if(S.tomPos===3||S.tomPos===4){
+  const s=S;
+  s.tomPhase='leaving';s.tomDoor=s.tomPos===3?0:1;
+  setTimeout(()=>{
+   if(S!==s||s.over||s.tomPhase!=='leaving')return;
+   s.tomPhase='atdoor';s.tomCountdown=12;draw();
+  },2000);
+ }
+ updateTomAudio();
+}
+
+function tomRepel(){
+ const s=S;
+ snd('snd-steps');
+ s.tomPhase='away';s.tomDoor=-1;s.tomCountdown=0;
+ updateTomAudio();
+ const delay=(Math.floor(Math.random()*6)+4)*1000;
+ setTimeout(()=>{if(S===s&&!s.over){s.tomPos=0;s.tomPhase='idle';draw();}},delay);
+}
+
+// Tom is onzichtbaar op de camera's: je hoort hem alleen (loop) als je kijkt naar de camera waar hij zit
+const TOM_VOLUME=0.5; // 50% zachter dan origineel (1.0)
+function updateTomAudio(){
+ const a=$('snd-tom');if(!a)return;
+ const alive=currentNight>=3&&S&&!S.over&&S.tomPhase==='idle';
+ if(alive){
+  // Speelt continu door; alleen hoorbaar als de speler naar Toms camera kijkt
+  const watching=S.cam&&S.tomPos===S.activeCam;
+  a.loop=true;
+  a.volume=watching?TOM_VOLUME:0;
+  if(a.paused)a.play().catch(()=>{});
+ } else if(!a.paused){a.pause();a.currentTime=0;}
+}
+
+function tomDie(){
+ S.over=true;stopAllAudio();
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+ stopRepair();resetOom();
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ $('eyes-closed').classList.remove('on');
+ const j=$('js3'),a=$('snd-tomjs');
+ j.style.display='flex';
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  a.pause();
+  snd('snd-gameover');
+  $('gameover-img').src='Images/GameOver.png';
+  $('gameover-screen').classList.add('on');
+ };
+ a.onended=done;a.onerror=()=>setTimeout(done,2500);
+ a.volume=1;a.currentTime=0;a.play().catch(()=>setTimeout(done,2500));
+ setTimeout(done,15000);
+}
+
+/* ---- Einde ---- */
+function die(){
+ S.over=true;stopAllAudio();
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+ stopRepair();resetOom();
+ $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ playJumpscare('Images/GameOver.png');
+}
+
+function win(){
+ S.over=true;stopAllAudio();
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);stopRepair();resetOom();
+ $('bar').style.display='none';
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ snd('snd-6am');
+ const as=$('alarm-screen');
+ as.onclick=null;
+ as.classList.add('on');
+ let alarmClickable=false;
+ setTimeout(()=>{alarmClickable=true;},2000);
+ as.onclick=()=>{
+  if(!alarmClickable)return;
+  as.onclick=null;
+  as.classList.remove('on');
+  startDialogue();
+ };
+}
+
+/* ---- Dialoog ---- */
+const DIALOGUE=[
+ 'Ik zal mezelf nooit kunnen vergeven.',
+ 'Het begon allemaal als een grap.',
+ 'Het had nooit zo ver hoeven te komen.',
+ 'Dit allemaal om maar 1 prankcall.',
+ 'De laatste tijd heb ik nachtmerries dat ik hem weer zie.',
+ 'Zijn lichaam was helemaal misvormd en niet meer te herkennen.',
+ 'Ik heb een enorme angst dat als ik gegijzeld word in mijn droom dat ik nooit meer zal ontwaken.',
+ 'Nooit meer zal ontwaken.',
+ 'NOOIT MEER ZAL ONTWAKEN!!!'
+];
+const DIALOGUE_N2=[
+ 'De auto is gevonden.',
+ 'Meester Gijs was niet de enige passagier.',
+ 'Na het ongeluk is de auto in de fik gevlogen.',
+ 'Al de passagiers zijn volledig verbrand.',
+ 'Ze laten je hier niet mee weg komen.',
+ 'Dit is jouw fout.'
+];
+const DIALOGUE_N3=[
+ 'Ik kan hem laten betalen.',
+ 'Ik weet de manier',
+ 'Hij zal hier niet mee weg komen.',
+ 'Ik kan jullie weer in leven brengen.',
+ 'Maar niets in het leven is gratis.',
+ 'Breng me zijn lijk voor zaterdag avond en alles zal vergeven worden.',
+ 'Anders zullen jullie branden in de hel voor eeuwig en altijd.',
+ 'Voor eeuwig en altijd!!!!'
+];
+let dialogueIdx=0;
+
+function startDialogue(){
+ dialogueIdx=0;
+ const ds=$('dialogue-screen');
+ ds.classList.add('on');
+ const ta=$('snd-textamb');if(ta){ta.loop=true;ta.currentTime=0;ta.play().catch(()=>{});}
+ showDialogueLine();
+}
+
+function getDialogue(){return currentNight===3?DIALOGUE_N3:currentNight===2?DIALOGUE_N2:DIALOGUE;}
+
+function showDialogueLine(){
+ const d=getDialogue();
+ const txt=$('dialogue-text');
+ txt.textContent=d[dialogueIdx];
+ const btn=$('dialogue-next');
+ btn.style.display='block';
+ if(dialogueIdx===d.length-1){
+  btn.style.display='none';
+  setTimeout(()=>{
+   $('dialogue-screen').classList.remove('on');
+   stopAllAudio();
+   if(currentNight===3){
+    const ts=$('theend-screen');
+    ts.style.display='flex';
+    const tbg=$('theend-bg');
+    tbg.muted=false;tbg.currentTime=0;tbg.play().catch(()=>{});
+    const te=$('snd-theend');
+    te.currentTime=0;te.play().catch(()=>{});
+    setTimeout(()=>{$('theend-title').style.opacity='1';},500);
+   } else {
+    $('menu').style.display='flex';
+    $('night-intro').classList.remove('on');
+    playMenuAudio();
+   }
+  },3500);
+ }
+}
+
+function nextDialogue(){
+ snd('snd-camopen');
+ dialogueIdx++;
+ const d=getDialogue();
+ if(dialogueIdx<d.length){
+  showDialogueLine();
+ } else {
+  $('dialogue-screen').classList.remove('on');
+  stopAllAudio();
+  if(currentNight===3){
+   const ts=$('theend-screen');
+   ts.style.display='flex';
+   const tbg=$('theend-bg');
+   tbg.muted=false;tbg.currentTime=0;tbg.play().catch(()=>{});
+   const te=$('snd-theend');
+   te.currentTime=0;te.play().catch(()=>{});
+   setTimeout(()=>{$('theend-title').style.opacity='1';},500);
+  } else {
+   $('night-intro').classList.remove('on');
+   $('menu').style.display='flex';
+   playMenuAudio();
+  }
+ }
+}
+
+/* ---- Keyboard ---- */
+addEventListener('keydown',e=>{
+ if(!S||S.over)return;
+ if(e.key===' '){e.preventDefault();tcam();return;}
+ if(e.key==='d'||e.key==='D'){e.preventDefault();toggleSpeed();return;}
+ if(e.key==='Shift'&&!shiftDown){
+  shiftDown=true;
+  toggleEyes();
+ }
+});
+addEventListener('keyup',e=>{
+ if(e.key==='Shift'){shiftDown=false;}
+});
+</script>
+</body>
+</html>
