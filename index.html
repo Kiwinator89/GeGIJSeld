@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>geGIJSeld</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;user-select:none}
 body{margin:0;background:#000;color:#ccc;font-family:'Courier New',monospace;overflow:hidden;height:100vh}
@@ -160,6 +161,27 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #alarm-sub{font-size:13px;color:#555;letter-spacing:3px;margin-top:30px}
 @keyframes alarmglow{0%{box-shadow:0 0 20px #fa0,0 0 40px #fa04}100%{box-shadow:0 0 40px #fa0,0 0 80px #fa08}}
 @keyframes clockhand{0%{transform:translate(-50%,-100%) rotate(0deg);transform-origin:bottom center}100%{transform:translate(-50%,-100%) rotate(360deg);transform-origin:bottom center}}
+
+#arcade{--bg:#410000;--bone:#e8dcc8;--blood:#b3231f;--lamp:#d9b44a;position:fixed;inset:0;z-index:90;display:none;background:var(--bg);color:var(--bone);font-family:'Special Elite','Courier New',monospace;overflow:hidden;touch-action:none;user-select:none}
+#arcade.on{display:block}
+#arcade *{box-sizing:border-box;margin:0}
+#arcade canvas{display:block;width:100%;height:100%}
+#arcade .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(14,10,12,.9);text-align:center;padding:20px}
+#arcade .ov[hidden]{display:none}
+#arcade h1{font-size:clamp(36px,9vw,80px);color:var(--blood);font-weight:400;text-shadow:none;letter-spacing:0}
+#arcade p{max-width:44ch;line-height:1.5;color:var(--bone)}
+#arcade button{font:inherit;font-size:20px;background:none;color:var(--bone);border:2px solid var(--bone);padding:10px 22px;cursor:pointer;box-shadow:none;transition:none}
+#arcade button:hover,#arcade button:focus-visible{background:var(--bone);color:var(--bg);outline:none;box-shadow:none}
+#arcade #ar-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#arcade #ar-cards button{width:210px;text-align:left;font-size:16px}
+#arcade #ar-cards b{display:block;color:var(--lamp);font-weight:400;font-size:19px;margin-bottom:4px}
+#arcade #ar-hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;pointer-events:none;display:flex;gap:14px;align-items:center;font-size:17px;z-index:1}
+#arcade .bar{height:10px;background:#2a1d20;border:1px solid #4a3539}
+#arcade .bar i{display:block;height:100%;width:0}
+#arcade #ar-hp{width:min(220px,40vw)}#arcade #ar-hp i{background:var(--blood)}
+#arcade #ar-xp{position:absolute;left:0;right:0;top:0;height:5px;border:0;z-index:1}#arcade #ar-xp i{background:var(--lamp)}
+#arcade #ar-tm{margin-left:auto;position:static;color:var(--bone);text-shadow:none;font-size:17px}
+#arcade #ar-lvl,#arcade #ar-end,#arcade #ar-menu{z-index:2}
 </style>
 </head>
 <body>
@@ -189,6 +211,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-nightintro" src="Audio/NightIntroduction.mp3" loop preload="auto"></audio>
 <audio id="snd-tom" src="Audio/Tom.mp3" loop preload="auto"></audio>
 <audio id="snd-tomjs" src="Audio/TomJumpscare.mp3" preload="auto"></audio>
+<audio id="snd-arcade" src="Audio/arcade.mp3" loop preload="auto" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='arcade.mp3'}"></audio>
 <audio id="snd-score" src="Audio/Score.mp3" preload="auto"></audio>
 
 <!-- Waarschuwingsscherm -->
@@ -216,6 +239,9 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  </div>
  <div style="margin-top:16px">
   <button onclick="startNightmare()" style="border-color:#f00;color:#f88;background:#1a0000;box-shadow:0 0 14px #f004">∞ ONEINDIGE NACHTMERRIE <span id="nm-badge">NIEUW</span></button>
+ </div>
+ <div style="margin-top:12px">
+  <button onclick="openArcade()" style="border-color:#d9b44a;color:#d9b44a;background:#1a1400;box-shadow:0 0 14px #d9b44a44">ARCADE MODUS</button>
  </div>
 </div>
 
@@ -1459,6 +1485,7 @@ function nextDialogue(){
 
 /* ---- Keyboard ---- */
 addEventListener('keydown',e=>{
+ if(window.arcadeOn)return;
  if(!S||S.over)return;
  if(e.key===' '){e.preventDefault();tcam();return;}
  if(e.key==='d'||e.key==='D'){e.preventDefault();toggleSpeed();return;}
@@ -1470,6 +1497,230 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{
  if(e.key==='Shift'){shiftDown=false;}
 });
+</script>
+
+<!-- ARCADE MODUS -->
+<div id="arcade">
+<canvas id="ar-c"></canvas>
+<div id="ar-hud"><div class="bar" id="ar-hp"><i></i></div><span id="ar-lv"></span><span id="ar-tm"></span></div>
+<div class="bar" id="ar-xp"><i></i></div>
+
+<div class="ov" id="ar-menu">
+  <h1>geGIJSeld</h1>
+  <p>Arcade. Je had hem nooit moeten bellen. Bereik niveau 10 en De Gijzeler komt. Versla hem om te ontsnappen.</p>
+  <p>Bewegen: WASD, pijltjestoetsen of slepen. Je valt vanzelf aan. Pauze: Esc.</p>
+  <p id="ar-best"></p>
+  <button id="ar-go">Begin</button>
+  <button id="ar-back">Terug naar menu</button>
+</div>
+<div class="ov" id="ar-lvl" hidden>
+  <h1>Hoger niveau</h1>
+  <div id="ar-cards"></div>
+</div>
+<div class="ov" id="ar-end" hidden>
+  <h1 id="ar-et"></h1>
+  <p id="ar-es"></p>
+  <button id="ar-again">Opnieuw</button>
+  <button id="ar-back2">Terug naar menu</button>
+</div>
+</div>
+<script>
+(function(){
+
+const $=id=>document.getElementById('ar-'+id),cv=$('c'),x=cv.getContext('2d');
+let on=false,raf=0;
+let W,H;
+function rs(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;x.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',rs);rs();
+
+const keys={};
+addEventListener('keydown',e=>{if(!on)return;const k=e.key.toLowerCase();if(k.startsWith('arrow'))e.preventDefault();keys[k]=1;
+  if(k=='escape'||k=='p'){if(state=='play')state='pause';else if(state=='pause')state='play'}});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+let joy=null;
+cv.addEventListener('pointerdown',e=>{joy={id:e.pointerId,sx:e.clientX,sy:e.clientY,dx:0,dy:0}});
+addEventListener('pointermove',e=>{if(joy&&e.pointerId==joy.id){const dx=e.clientX-joy.sx,dy=e.clientY-joy.sy,l=Math.hypot(dx,dy)||1,m=Math.min(l,60)/60;joy.dx=dx/l*m;joy.dy=dy/l*m}});
+addEventListener('pointerup',e=>{if(joy&&e.pointerId==joy.id)joy=null});
+
+const BEST='gegijseld-arcade-bestscore';
+const PAR=600,tb=()=>Math.max(0,PAR-Math.floor(S.t))*10,score=()=>S.kills*10+tb();
+const best=()=>{try{return +localStorage.getItem(BEST)||0}catch(e){return 0}};
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const d2=(a,b)=>(a.x-b.x)**2+(a.y-b.y)**2;
+
+// Plaatjes: pas hier aan welk character welke rol heeft
+const FOLDERS=['Imagesarcade/','Images/',''];
+const SPR={
+  norm:['GijsF1arcade','GijsF2arcade','GijsF3arcade','GijsF4arcade'],
+  elite:['GijsOomF1arcade','GijsOomF2arcade','GijsOomF3arcade'],
+  boss:['GijsF5arcade']
+};
+const IM={};
+function loadImg(n,i=0){if(i>=FOLDERS.length)return;
+  const im=new Image();im.onload=()=>IM[n]=im;im.onerror=()=>loadImg(n,i+1);im.src=FOLDERS[i]+n+'.png'}
+Object.values(SPR).flat().forEach(n=>loadImg(n));
+setTimeout(()=>{
+  const all=Object.values(SPR).flat(),miss=all.filter(n=>!IM[n]);
+  if(!miss.length)return;
+  const m=document.createElement('p');m.style.color='var(--lamp)';
+  m.textContent='Plaatjes niet gevonden: '+miss.join(', ')+'. Gezocht in: '+FOLDERS.map(f=>f||'(zelfde map als dit bestand)').join(', ')+'. Open de game via de echte site of een lokale server, niet als los bestand.';
+  $('menu').insertBefore(m,$('go'));
+},2500);
+
+let S=null,state='menu';
+function init(){S={t:0,kills:0,cd:0,sp:0,lt:0,ang:0,pend:0,mt:0,msg:'',boss:false,
+  p:{x:0,y:0,fa:0,hp:100,max:100,spd:150,mag:70,lv:1,xp:0,need:3,dmg:1,rate:1,inv:0},
+  w:{ring:1,chain:0,lamp:0},en:[],sh:[],gem:[],fx:[]}}
+
+const UP=[
+ {n:'Harder bellen',d:'+1 belsignaal per salvo',f:s=>s.w.ring++},
+ {n:'Kettingen',d:'+1 draaiende ketting',f:s=>s.w.chain++},
+ {n:'Zaklamp',d:'Lichtpuls, groeit met elk niveau',f:s=>s.w.lamp++},
+ {n:'Kracht',d:'+25% schade',f:s=>s.p.dmg*=1.25},
+ {n:'Sneller bellen',d:'+25% aanvalssnelheid',f:s=>s.p.rate*=1.25},
+ {n:'Zenuwen',d:'+20% loopsnelheid',f:s=>s.p.spd*=1.2},
+ {n:'Magneet',d:'Grotere oprapen-straal',f:s=>s.p.mag+=200},
+ {n:'Doorzetten',d:'+30 max. leven en 30 genezen',f:s=>{s.p.max+=30;s.p.hp=Math.min(s.p.max,s.p.hp+30)}}
+];
+
+function start(){init();state='play';['menu','lvl','end'].forEach(i=>$(i).hidden=true)}
+function end(win){state='over';
+  $('et').textContent=win?'Ontsnapt.':'Gegijzeld.';
+  if(!win){$('es').textContent='Hij heeft je. Geen score. Tijd '+fmt(S.t)+', '+S.kills+' schaduwen verslagen.';$('end').hidden=false;return}
+  const sc=score(),old=best(),rec=sc>old;
+  try{if(rec)localStorage.setItem(BEST,sc)}catch(e){}
+  $('es').innerHTML='De Gijzeler is weg.<br>'+S.kills+' schaduwen × 10 = '+S.kills*10+'<br>Snelheidsbonus ('+fmt(S.t)+') = '+tb()+'<br><b style="color:var(--lamp);font-weight:400;font-size:26px">Score '+sc+'</b><br>'+(rec?'Nieuw record!':'Beste score '+old);
+  $('end').hidden=false}
+function lvl(){state='level';const c=$('cards');c.innerHTML='';
+  [...UP].sort(()=>Math.random()-.5).slice(0,3).forEach(u=>{
+    const b=document.createElement('button');b.innerHTML='<b>'+u.n+'</b>'+u.d;
+    b.onclick=()=>{u.f(S);$('lvl').hidden=true;state='play'};c.append(b)});
+  $('lvl').hidden=false}
+
+function spawn(k){const p=S.p,t=S.t,a=Math.random()*6.283,d=Math.hypot(W,H)/2+200;
+  const e={x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,hp:2+t/20,r:48,spd:45+Math.min(40,t/6)+Math.random()*15,dm:10,xp:0.7,ch:0,fl:0,k};
+  if(k=='elite'){e.hp*=8;e.r=84;e.spd*=.8;e.dm=24;e.xp=10}
+  if(k=='boss'){e.hp=3500;e.r=200;e.spd=110;e.dm=55;e.xp=10000000}
+  e.sp=SPR[k][Math.floor(Math.random()*SPR[k].length)];e.dir=1;
+  e.mh=e.hp;S.en.push(e)}
+function hit(e,d){if(e.dead)return;e.hp-=d;e.fl=.08;
+  if(e.hp<=0){e.dead=1;S.kills++;S.gem.push({x:e.x,y:e.y,v:e.xp});if(e.k=='boss')end(true)}}
+
+function upd(dt){
+  const p=S.p,w=S.w;S.t+=dt;S.mt-=dt;
+  let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),iy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+  if(joy){ix+=joy.dx;iy+=joy.dy}
+  const il=Math.hypot(ix,iy);if(il>1){ix/=il;iy/=il}
+  p.x+=ix*p.spd*dt;p.y+=iy*p.spd*dt;if(il>.1)p.fa=Math.atan2(iy,ix);p.inv-=dt;
+
+  S.sp-=dt;
+  const bs=S.en.find(e=>e.k=='boss');
+  if(bs&&!S.ph2&&bs.hp<=bs.mh/2){S.ph2=true;S.msg='Hij roept zijn schaduwen.';S.mt=3}
+  if(S.sp<=0&&(!S.boss||S.ph2)&&S.en.length<120){S.sp=Math.max(.12,.9-S.t/300);
+    for(let i=0,n=1+Math.floor(S.t/60);i<n;i++)spawn(S.t>30&&Math.random()<.04?'elite':'norm')}
+  if(!S.boss&&p.lv>=10&&S.pend==0){S.boss=true;S.en=[];spawn('boss');S.msg='Hij is er.';S.mt=3}
+
+  S.cd-=dt;
+  if(S.cd<=0&&S.en.length){S.cd=.9/p.rate;
+    const tg=[...S.en].sort((a,b)=>d2(a,p)-d2(b,p)).slice(0,w.ring);
+    for(let i=0;i<w.ring;i++){const e=tg[i%tg.length],a=Math.atan2(e.y-p.y,e.x-p.x)+(i>=tg.length?(i-tg.length+1)*.15:0);
+      S.sh.push({x:p.x,y:p.y,vx:Math.cos(a)*380,vy:Math.sin(a)*380,l:1.2,d:2*p.dmg,pr:2})}}
+  S.ang+=3*dt;
+  S.lt-=dt;
+  if(w.lamp&&S.lt<=0){S.lt=2.2;const R=60+w.lamp*25;
+    S.en.forEach(e=>{if(d2(e,p)<(R+e.r)**2)hit(e,3*p.dmg)});S.fx.push({R,l:.4,t:.4})}
+
+  for(const s of S.sh){s.x+=s.vx*dt;s.y+=s.vy*dt;s.l-=dt;
+    for(const e of S.en){if(!e.dead&&s.pr>0&&d2(e,s)<(e.r+5)**2){hit(e,s.d);s.pr--}}}
+  S.sh=S.sh.filter(s=>s.l>0&&s.pr>0);
+  S.fx.forEach(f=>f.l-=dt);S.fx=S.fx.filter(f=>f.l>0);
+
+  for(const e of S.en){if(e.dead)continue;
+    const dx=p.x-e.x,dy=p.y-e.y,l=Math.hypot(dx,dy)||1;
+    e.x+=dx/l*e.spd*dt;e.y+=dy/l*e.spd*dt;e.ch-=dt;e.fl-=dt;if(Math.abs(dx)>4)e.dir=dx<0?-1:1;
+    for(let i=0;i<w.chain;i++){const a=S.ang+i*6.283/w.chain,o={x:p.x+Math.cos(a)*65,y:p.y+Math.sin(a)*65};
+      if(e.ch<=0&&d2(e,o)<(e.r+9)**2){hit(e,1.5*p.dmg);e.ch=.4}}
+    if(l<e.r+10&&p.inv<=0&&!e.dead){p.hp-=e.dm;p.inv=.6;if(p.hp<=0){end(false);return}}}
+  S.en=S.en.filter(e=>!e.dead);
+  if(state!='play')return;
+
+  for(const g of S.gem){const l=Math.sqrt(d2(g,p));
+    if(l<p.mag){g.x+=(p.x-g.x)/l*300*dt;g.y+=(p.y-g.y)/l*300*dt}
+    if(l<12){g.got=1;p.xp+=g.v;
+      if(p.xp>=p.need){p.xp-=p.need;p.lv++;p.need=Math.ceil(p.need*1.15+1);S.pend++}}}
+  S.gem=S.gem.filter(g=>!g.got);
+  if(S.pend>0){S.pend--;lvl()}
+}
+
+function circ(px,py,r){x.beginPath();x.arc(px,py,r,0,6.283);x.fill()}
+function draw(){
+  x.fillStyle='#0e0a0c';x.fillRect(0,0,W,H);if(!S)return;
+  const p=S.p,w=S.w;x.save();x.translate(W/2-p.x,H/2-p.y);
+  const g=80;x.strokeStyle='#1d1417';x.lineWidth=1;x.beginPath();
+  for(let gx=Math.floor((p.x-W/2)/g)*g;gx<p.x+W/2+g;gx+=g){x.moveTo(gx,p.y-H/2-g);x.lineTo(gx,p.y+H/2+g)}
+  for(let gy=Math.floor((p.y-H/2)/g)*g;gy<p.y+H/2+g;gy+=g){x.moveTo(p.x-W/2-g,gy);x.lineTo(p.x+W/2+g,gy)}
+  x.stroke();
+  x.fillStyle='#d9b44a';S.gem.forEach(q=>x.fillRect(q.x-3,q.y-3,6,6));
+  for(const e of S.en){
+    const im=IM[e.sp];
+    if(im){const h=Math.min(e.r*3.4,H*.8),wd=h*im.width/im.height;
+      x.save();x.translate(e.x,e.y);if(e.dir<0)x.scale(-1,1);if(e.fl>0)x.globalAlpha=.55;
+      x.drawImage(im,-wd/2,-h/2,wd,h);x.restore();continue}
+    x.fillStyle=e.fl>0?'#e8dcc8':e.k=='norm'?'#2a1a1f':'#4a1418';circ(e.x,e.y,e.r);
+    if(e.k=='boss'){x.strokeStyle='#e8dcc8';x.lineWidth=3;x.stroke()}
+    x.fillStyle='#b3231f';circ(e.x-e.r*.35,e.y-e.r*.15,e.r*.15);circ(e.x+e.r*.35,e.y-e.r*.15,e.r*.15)}
+  x.strokeStyle='#d9b44a';x.lineWidth=2;
+  S.sh.forEach(s=>{x.beginPath();x.arc(s.x,s.y,5,0,6.283);x.stroke()});
+  x.fillStyle='#e8dcc8';
+  for(let i=0;i<w.chain;i++){const a=S.ang+i*6.283/w.chain;circ(p.x+Math.cos(a)*65,p.y+Math.sin(a)*65,8)}
+  S.fx.forEach(f=>{x.strokeStyle='rgba(217,180,74,'+f.l/f.t+')';x.lineWidth=4;x.beginPath();x.arc(p.x,p.y,f.R*(1-f.l/f.t),0,6.283);x.stroke()});
+  x.fillStyle=p.inv>0&&Math.floor(S.t*20)%2?'#b3231f':'#e8dcc8';circ(p.x,p.y,10);
+  x.fillStyle='#d9b44a';circ(p.x+Math.cos(p.fa)*7,p.y+Math.sin(p.fa)*7,4);
+  x.restore();
+
+  const gr=x.createRadialGradient(W/2,H/2,90,W/2,H/2,Math.max(W,H)*.6);
+  gr.addColorStop(0,'rgba(14,10,12,0)');gr.addColorStop(1,'rgba(14,10,12,.94)');
+  x.fillStyle=gr;x.fillRect(0,0,W,H);
+  x.textAlign='center';
+  const b=S.en.find(e=>e.k=='boss');
+  if(b){x.fillStyle='#2a1d20';x.fillRect(W/2-150,H-34,300,10);x.fillStyle='#b3231f';x.fillRect(W/2-150,H-34,300*Math.max(0,b.hp/b.mh),10);
+    x.fillStyle='#e8dcc8';x.font='16px "Special Elite","Courier New",monospace';x.fillText('De Gijzeler',W/2,H-42)}
+  if(S.mt>0){x.globalAlpha=Math.min(1,S.mt);x.fillStyle='#b3231f';x.font='44px "Special Elite","Courier New",monospace';x.fillText(S.msg,W/2,H*.3);x.globalAlpha=1}
+  if(state=='pause'){x.fillStyle='#e8dcc8';x.font='44px "Special Elite","Courier New",monospace';x.fillText('Pauze',W/2,H/2)}
+
+  $('hp').firstChild.style.width=Math.max(0,p.hp/p.max*100)+'%';
+  $('xp').firstChild.style.width=p.xp/p.need*100+'%';
+  $('lv').textContent='Niveau '+p.lv+'  Verslagen '+S.kills;
+  $('tm').textContent=fmt(S.t);
+}
+
+let last=0;
+function loop(ts){if(!on)return;const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(state=='play')upd(dt);draw();raf=requestAnimationFrame(loop)}
+
+function openArcade(){
+  on=true;window.arcadeOn=true;
+  $('c').parentNode.classList.add('on');
+  rs();state='menu';S=null;
+  ['lvl','end'].forEach(i=>$(i).hidden=true);$('menu').hidden=false;
+  $('best').textContent=best()?'Beste score '+best():'';
+  stopAllAudio();
+  const a=document.getElementById('snd-arcade');
+  if(a){a.loop=true;a.currentTime=0;a.play().catch(()=>{})}
+  last=0;cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+}
+function closeArcade(){
+  on=false;window.arcadeOn=false;state='menu';S=null;
+  cancelAnimationFrame(raf);
+  $('c').parentNode.classList.remove('on');
+  const a=document.getElementById('snd-arcade');if(a){a.pause();a.currentTime=0}
+  playMenuAudio();
+}
+$('go').onclick=start;$('again').onclick=start;
+$('back').onclick=closeArcade;$('back2').onclick=closeArcade;
+window.openArcade=openArcade;window.closeArcade=closeArcade;
+
+})();
 </script>
 </body>
 </html>
