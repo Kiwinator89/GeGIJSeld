@@ -134,6 +134,20 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 #go-back-btn{position:relative;z-index:2;font-family:'Courier New',monospace;background:rgba(0,0,0,.85);color:#f44;border:2px solid #f00;padding:14px 36px;font-size:18px;cursor:pointer;letter-spacing:3px;transition:.2s;text-shadow:0 0 10px #f00;margin-top:16px}
 #go-back-btn:hover{background:#1a0000;box-shadow:0 0 20px #f006;color:#fff}
 @keyframes gopulse{0%,100%{opacity:1}50%{opacity:.7}}
+/* Score overlay */
+#score-overlay{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);z-index:3;text-align:center;min-width:300px}
+#score-title{font-size:14px;color:#888;letter-spacing:4px;margin-bottom:8px}
+#score-rows{display:flex;flex-direction:column;gap:6px}
+.score-row{display:flex;justify-content:space-between;gap:40px;font-size:18px;color:#aaa;letter-spacing:2px;opacity:0;transition:opacity .4s}
+.score-row.shown{opacity:1}
+.score-row span:last-child{color:#fff;text-shadow:0 0 10px #f44}
+#score-total{font-size:28px;color:#f44;letter-spacing:4px;text-shadow:0 0 20px #f44;margin-top:14px;opacity:0;transition:opacity .6s}
+#score-total.shown{opacity:1}
+/* Nightmare badge op menu */
+#nm-badge{display:inline-block;background:#1a0000;border:1px solid #f00;color:#f88;font-size:11px;letter-spacing:2px;padding:2px 8px;vertical-align:middle;margin-left:8px;animation:blink 1.4s step-start infinite}
+/* Nightmare HUD */
+#nm-hud{position:absolute;top:38px;right:20px;z-index:3;font-size:13px;color:#f88;letter-spacing:2px;text-shadow:0 0 8px #f004;display:none}
+#nm-hud.visible{display:block}
 
 /* 6AM scherm */
 #alarm-screen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0a0a1a,#000);cursor:pointer}
@@ -175,6 +189,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
 <audio id="snd-nightintro" src="Audio/NightIntroduction.mp3" loop preload="auto"></audio>
 <audio id="snd-tom" src="Audio/Tom.mp3" loop preload="auto"></audio>
 <audio id="snd-tomjs" src="Audio/TomJumpscare.mp3" preload="auto"></audio>
+<audio id="snd-score" src="Audio/Score.mp3" preload="auto"></audio>
 
 <!-- Waarschuwingsscherm -->
 <div id="warning-screen">
@@ -198,6 +213,9 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <button onclick="selectNight(1)">NACHT 1</button>
   <button onclick="selectNight(2)" id="night2-btn">NACHT 2</button>
   <button onclick="selectNight(3)" id="night3-btn">NACHT 3</button>
+ </div>
+ <div style="margin-top:16px">
+  <button onclick="startNightmare()" style="border-color:#f00;color:#f88;background:#1a0000;box-shadow:0 0 14px #f004">∞ ONEINDIGE NACHTMERRIE <span id="nm-badge">NIEUW</span></button>
  </div>
 </div>
 
@@ -227,7 +245,7 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
   <div id="cd">CAM 1</div>
   <div id="crec">● REC</div>
   <img id="ec" src="Images/GijsF1.png">
-  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:75%;width:auto;max-width:60%;object-fit:contain;z-index:1;display:none">
+  <img id="ec-oom" src="Images/GijsOomF1.png" style="position:absolute;bottom:0;left:65%;transform:translateX(-50%);height:75%;width:auto;max-width:50%;object-fit:contain;z-index:1;display:none">
   <!-- Storing overlay -->
   <div id="static-overlay">
    <div id="static-text">⚠ GEEN SIGNAAL</div>
@@ -280,10 +298,18 @@ button:hover{background:#333;color:#fff;box-shadow:0 0 15px #fff3}
  <img id="js3-img" src="Images/TomJumpscare.png" alt="" style="width:100vw;height:100vh;object-fit:cover">
 </div>
 
+<!-- Nightmare HUD -->
+<div id="nm-hud">∞ NACHTMERRIE | WAVE <span id="nm-wave">1</span></div>
+
 <!-- Gameover scherm -->
 <div id="gameover-screen">
  <img id="gameover-img" src="Images/GameOver.png" alt="Game Over">
  <div id="go-title">GAME OVER</div>
+ <div id="score-overlay">
+  <div id="score-title">STATISTIEKEN</div>
+  <div id="score-rows"></div>
+  <div id="score-total"></div>
+ </div>
  <button id="go-back-btn" onclick="goToMenu()">TERUG NAAR MENU</button>
 </div>
 
@@ -419,11 +445,186 @@ function goToMenu(){
  $('dialogue-screen').classList.remove('on');
  $('alarm-screen').classList.remove('on');
  $('end').style.display='none';
+ $('nm-hud').classList.remove('visible');
+ isNightmare=false;
+ currentNight=1;
+ $('score-rows').innerHTML='';
+ $('score-total').textContent='';
+ $('score-total').classList.remove('shown');
  $('menu').style.display='flex';
  playMenuAudio();
 }
 
 let currentNight=1;
+let isNightmare=false;
+let nightmareWave=1; // elke 60 sec = 1 wave (= 1 uur in-game)
+let nightmareStartTime=0;
+let nightmareScoreData={};
+
+function startNightmare(){
+ isNightmare=true;
+ nightmareWave=1;
+ currentNight=2; // start met nacht 2 AI (Oom erbij)
+ stopAllAudio();
+ $('menu').style.display='none';
+ $('night-intro').classList.remove('on');
+ // Geen intro scherm, direct starten
+ actualStartNightmare();
+}
+
+function actualStartNightmare(){
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);
+ camSwitchTimer=null;camFrac=0;
+ cancelAnimationFrame(progressRaf);
+ $('cam-progress').style.width='0%';
+ $('room').style.display='';$('bar').style.display='';$('tm').style.display='';
+ setBarDisabled(false);
+ stopRepair();
+ resetStress();
+ played5AM=false;
+ nightmareStartTime=performance.now();
+ nightmareScoreData={};
+ S={
+  p:100,d:[0,0],h:0,
+  cam:false,door:false,
+  activeCam:0,fast:false,
+  gijsPos:0,gijsTimer:getGijsDelayForPhase(),
+  tomPos:0,tomPhase:'idle',tomDoor:-1,tomCountdown:0,t0:performance.now(),
+  attackPhase:'idle',
+  attackDoor:-1,
+  attackCountdown:0,
+  over:false,powerOut:false,tick:0,
+  hasFault:false,faultNotified:false,showSecret:false
+ };
+ $('js').style.display='none';
+ $('js2').style.display='none';
+ $('js3').style.display='none';
+ $('gameover-screen').classList.remove('on');
+ $('alarm-screen').classList.remove('on');
+ $('cam').classList.remove('on');
+ $('door-ui').classList.remove('on');
+ $('static-overlay').classList.remove('on');
+ $('repair-btn').classList.remove('visible');
+ $('eyes-closed').classList.remove('on');
+ $('ec-oom').style.display='none';
+ eyesHeld=false;shiftDown=false;
+ resetOom();
+ $('nm-hud').classList.add('visible');
+ $('nm-wave').textContent=nightmareWave;
+ // Start nightmare loop
+ playAmbience();
+ setupEyesBtn();
+ draw();
+ if(S.iv)clearInterval(S.iv);
+ S.iv=setInterval(loopNightmare,1000);
+ startStressLoop();
+ startRandomAudioLoop();
+ scheduleOom(); // oom altijd actief in nightmare
+}
+
+function loopNightmare(){
+ if(S.over)return;
+ S.tick++;
+ const elapsed=(performance.now()-nightmareStartTime)/1000; // seconden
+ const waveNow=Math.floor(elapsed/60)+1; // elke 60 sec = nieuwe wave
+ if(waveNow>nightmareWave){
+  nightmareWave=waveNow;
+  $('nm-wave').textContent=nightmareWave;
+  // +10% stroom per wave
+  S.p=Math.min(100,S.p+10);
+  // AI gradueel moeilijker: gebruik wave als proxy voor nacht
+  if(nightmareWave>=5)currentNight=3; // Tom actief vanaf wave 5
+  else if(nightmareWave>=2)currentNight=2;
+ }
+ if(!S.powerOut){
+  // In nightmare: stroomverbruik iets hoger per wave
+  const waveScale=1+(nightmareWave-1)*0.05;
+  const basePower=0.1,camPower=S.cam?0.2:0,doorPower=(S.d[0]*0.5)+(S.d[1]*0.5);
+  S.p-=(basePower+camPower+doorPower)*POWER_SCALE*waveScale;
+  if(S.p<=0)powerFailure();
+ }
+ checkFearDeath();
+ if(S.over)return;
+ // Geen 6AM win in nightmare — eindeloos
+ S.h=Math.floor((performance.now()-S.t0)/60000)%12||0;
+ S.gijsTimer--;
+ if(S.attackPhase==='atdoor'){
+  S.attackCountdown--;
+  if(S.attackCountdown<=0){
+   if(S.d[S.attackDoor]===0){dieNightmare();return;}
+   S.attackPhase='idle';S.attackDoor=-1;
+   snd('snd-steps');
+   const delay=(Math.floor(Math.random()*6)+4)*1000;
+   setTimeout(()=>{if(!S.over){S.gijsPos=0;S.gijsTimer=getGijsDelayForPhase();draw();}},delay);
+  }
+ }
+ if(S.gijsTimer<=0){S.gijsTimer=getGijsDelayForPhase();moveGijs();}
+ if(currentNight>=3){tomTick();if(S.over)return;}
+ draw();
+}
+
+function dieNightmare(){
+ S.over=true;stopAllAudio();
+ clearInterval(S.iv);if(randomAudioInterval){clearInterval(randomAudioInterval);randomAudioInterval=null;}
+ if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
+ cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
+ stopRepair();resetOom();
+ $('door-ui').classList.remove('on');
+ $('stress-meter').classList.remove('visible');
+ $('eyes-btn').classList.remove('visible','active');
+ $('bar').style.display='none';
+ $('nm-hud').classList.remove('visible');
+ const survivedSec=Math.floor((performance.now()-nightmareStartTime)/1000);
+ nightmareScoreData={
+  waves:nightmareWave,
+  time:survivedSec,
+  stress:Math.floor(S.stress||0)
+ };
+ playJumpscareNightmare('Images/GameOver.png');
+}
+
+function playJumpscareNightmare(img){
+ const j=$('js'),v=$('jv');
+ $('eyes-closed').classList.remove('on');
+ j.style.display='flex';
+ const done=()=>{
+  if(j.style.display==='none')return;
+  j.style.display='none';
+  showNightmareScore(img);
+ };
+ v.onended=done;v.onerror=()=>setTimeout(done,1500);
+ boostJumpscareVolume(v);
+ v.currentTime=0;v.play().catch(()=>setTimeout(done,1500));
+ setTimeout(done,15000);
+}
+
+function showNightmareScore(img){
+ $('gameover-img').src=img;
+ $('gameover-screen').classList.add('on');
+ const d=nightmareScoreData;
+ const mins=Math.floor(d.time/60),secs=d.time%60;
+ const rows=[
+  {label:'WAVES OVERLEEFD',val:d.waves},
+  {label:'OVERLEEFTIJD',val:`${mins}m ${secs}s`},
+  {label:'EINDSTRESS',val:d.stress+'%'}
+ ];
+ const total=d.waves*500+d.time*2;
+ const scoreScore=$('snd-score');
+ scoreScore.currentTime=0;scoreScore.play().catch(()=>{});
+ const container=$('score-rows');
+ container.innerHTML='';
+ rows.forEach((r,i)=>{
+  const el=document.createElement('div');
+  el.className='score-row';
+  el.innerHTML=`<span>${r.label}</span><span>${r.val}</span>`;
+  container.appendChild(el);
+  setTimeout(()=>el.classList.add('shown'),(i+1)*700);
+ });
+ const tot=$('score-total');
+ tot.textContent='SCORE: '+total;
+ tot.classList.remove('shown');
+ setTimeout(()=>tot.classList.add('shown'),rows.length*700+600);
+}
 
 function selectNight(n){
  currentNight=n;
@@ -677,7 +878,14 @@ function fearDeath(){
  $('tm').style.display='none';
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
- playJumpscare('Images/GameOverFear.png');
+ $('nm-hud').classList.remove('visible');
+ if(isNightmare){
+  const survivedSec=Math.floor((performance.now()-nightmareStartTime)/1000);
+  nightmareScoreData={waves:nightmareWave,time:survivedSec,stress:Math.floor(S.stress||0)};
+  playJumpscareNightmare('Images/GameOverFear.png');
+ } else {
+  playJumpscare('Images/GameOverFear.png');
+ }
 }
 
 /* ---- Voortgangsbalk ---- */
@@ -930,15 +1138,22 @@ function handleOomCamLeave(){
   $('stress-meter').classList.remove('visible');
   $('eyes-btn').classList.remove('visible','active');
   // Speel GijsOom jumpscare
+  $('nm-hud').classList.remove('visible');
   const j=$('js2'),v=$('jv2');
   $('eyes-closed').classList.remove('on');
   j.style.display='flex';
   const done=()=>{
    if(j.style.display==='none')return;
    j.style.display='none';
-   snd('snd-gameover');
-   $('gameover-img').src='Images/GameOver.png';
-   $('gameover-screen').classList.add('on');
+   if(isNightmare){
+    const survivedSec=Math.floor((performance.now()-nightmareStartTime)/1000);
+    nightmareScoreData={waves:nightmareWave,time:survivedSec,stress:Math.floor(S.stress||0)};
+    showNightmareScore('Images/GameOver.png');
+   } else {
+    snd('snd-gameover');
+    $('gameover-img').src='Images/GameOver.png';
+    $('gameover-screen').classList.add('on');
+   }
   };
   v.onended=done;v.onerror=()=>setTimeout(done,1500);
   boostJumpscareVolume(v);
@@ -1079,15 +1294,22 @@ function tomDie(){
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
  $('eyes-closed').classList.remove('on');
+ $('nm-hud').classList.remove('visible');
  const j=$('js3'),a=$('snd-tomjs');
  j.style.display='flex';
  const done=()=>{
   if(j.style.display==='none')return;
   j.style.display='none';
   a.pause();
-  snd('snd-gameover');
-  $('gameover-img').src='Images/GameOver.png';
-  $('gameover-screen').classList.add('on');
+  if(isNightmare){
+   const survivedSec=Math.floor((performance.now()-nightmareStartTime)/1000);
+   nightmareScoreData={waves:nightmareWave,time:survivedSec,stress:Math.floor(S.stress||0)};
+   showNightmareScore('Images/GameOver.png');
+  } else {
+   snd('snd-gameover');
+   $('gameover-img').src='Images/GameOver.png';
+   $('gameover-screen').classList.add('on');
+  }
  };
  a.onended=done;a.onerror=()=>setTimeout(done,2500);
  a.volume=1;a.currentTime=0;a.play().catch(()=>setTimeout(done,2500));
@@ -1101,10 +1323,19 @@ function die(){
  if(camSwitchTimer)clearTimeout(camSwitchTimer);cancelAnimationFrame(progressRaf);
  cancelAnimationFrame(stressRaf);cancelAnimationFrame(stressDecayRaf);
  stopRepair();resetOom();
+ $('bar').style.display='none';
+ $('cam').classList.remove('on');
  $('door-ui').classList.remove('on');
  $('stress-meter').classList.remove('visible');
  $('eyes-btn').classList.remove('visible','active');
- playJumpscare('Images/GameOver.png');
+ $('nm-hud').classList.remove('visible');
+ if(isNightmare){
+  const survivedSec=Math.floor((performance.now()-nightmareStartTime)/1000);
+  nightmareScoreData={waves:nightmareWave,time:survivedSec,stress:Math.floor(S.stress||0)};
+  playJumpscareNightmare('Images/GameOver.png');
+ } else {
+  playJumpscare('Images/GameOver.png');
+ }
 }
 
 function win(){
